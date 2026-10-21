@@ -1363,7 +1363,6 @@
     pn.innerHTML = `<h4>Prototype · Happy path + PO &amp; Completion</h4><h3>${t}</h3><ul>${pts.map(p => `<li>${p}</li>`).join('')}</ul><h4>Evidence</h4><p class="ev" style="margin:0 0 16px">${ev}</p>
       <div class="ctl"><button data-act="reset">↺ Reset</button><button data-act="theme">◐ Light / Dark</button></div>
       <div class="ctl"><button data-act="font">Aa Font: ${{ inter:'Inter', jakarta:'Plus Jakarta Sans', system:'iOS System (SF)' }[root.dataset.font]}</button></div>
-      <h4 style="margin-top:18px">PO &amp; Completion demo</h4>${demoHTML()}
       ${notifControls()}
       <p class="ev" style="margin-top:14px"><b>Try it:</b> from Home, fire “Arrive at site” and tap Mark On Site on the push. Then walk the job to Complete. Fire “Leave w/o Complete” to see the card turn red with a Mark Complete button.</p>`;
     pn.scrollTop = top;
