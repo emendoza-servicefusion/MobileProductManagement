@@ -47,7 +47,7 @@ The Job stays the central record. POs, visits, documentation, invoice and paymen
 ### Completion (Stories 8–10)
 - **S8 Checklist.** The Complete sheet becomes a checklist built from existing job records: customer signature, parts used, tasks, photos, notes; Completion form and Documents shown as *not applicable* in the demo. Each item is complete, incomplete or not applicable, with an action. **Required vs reminder:** in the demo only the signature is required. The main button stays disabled with "1 required item left" until it is signed; everything else is a reminder.
 - **S9 Financial status.** With permission: invoice, total, paid, balance and *Collect Payment*. Without: a locked row saying the office handles it. Invoice total reflects parts recorded.
-- **S10 Complete or hand off.** Purchasing + billing completes (or partially completes) the job. Approval + handoff selects **Ready for Office Review**; the job moves to Done today and no financial detail is shown.
+- **S10 Complete or hand off.** Purchasing + billing completes the job through the checklist (Partially Completed is set from the status pill and simply updates the status). Approval + handoff selects **Ready for Office Review**; the job moves to Done today and no financial detail is shown.
 
 ## 5. Demo controls
 

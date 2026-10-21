@@ -854,7 +854,7 @@
     else if (a === 'status') openSheet('status');
     else if (a === 'pickStatus') {
       const s = el.dataset.s; closeSheet();
-      if (s === 'Completed' || s === 'Partially Completed') { outcome = s; setTimeout(() => openSheet('complete'), 380); }
+      if (s === 'Completed') { outcome = s; setTimeout(() => openSheet('complete'), 380); }
       else if (s === 'Ready for Office Review') { outcome = 'Completed'; setTimeout(() => openSheet('complete'), 380); }
       else if (s !== j.status) { setStatus(j, s); toast('Status: ' + s); }
     }
