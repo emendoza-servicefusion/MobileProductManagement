@@ -1552,7 +1552,7 @@
     const d = poDraft, sub = d.items.reduce((a, i) => a + i.cost * i.qty, 0);
     const row = i => { const p = prod(i.pid); return `<div class="irow2"><div class="ihead"><b>${p.name}</b><button class="padd" style="background:none;color:var(--red);width:30px;height:30px" data-act="po-remove" data-p="${p.id}" aria-label="Remove ${p.name}">${ic('trash', 18, 1.9)}</button></div>
         <div class="icontrols">${stepHTML('po-qty', p.id, i.qty)}${can().cost ? `<label class="cost"><span>$</span><input class="costin" type="number" inputmode="decimal" step="0.01" min="0" value="${i.cost.toFixed(2)}" data-p="${p.id}" aria-label="Unit cost"></label><b class="tot">${money(i.cost * i.qty)}</b>` : ''}</div>
-        <div class="stk">${stockPill(p)}</div></div>`; };
+        </div>`; };
     return {
       body: `<div class="forjob">For job #${j.num} · ${j.name}</div>
         <div class="pcard">
@@ -1595,8 +1595,8 @@
     const act = (a, ico, l, extra) => `<button class="qa4 ${extra || ''}" data-act="${a}" data-id="${q.id}">${ic(ico, 22, 1.8)}<span>${l}</span></button>`;
     const msg = (ico, l, m) => act('toast', ico, l).replace('data-act="toast"', `data-act="toast" data-msg="${m}"`);
     const items = q.items.map(i => {
-      const pr = prod(i.pid), pill = i.rcv >= i.qty ? '<span class="pill p-green">Received</span>' : i.rcv ? `<span class="pill p-amber">${i.rcv} of ${i.qty} received</span>` : (q.st === 'awaiting' || q.st === 'approved') ? stockPill(pr) : '<span class="pill p-gray">On order</span>';
-      return `<div class="prow"><div class="pinfo"><b>${pr.name}</b><small>Qty ${i.qty}${can().cost ? ' · ' + money(i.cost) + ' ea' : ''}</small><span class="stk">${pill}</span></div></div>`;
+      const pr = prod(i.pid), pill = i.rcv >= i.qty ? '<span class="pill p-green">Received</span>' : i.rcv ? `<span class="pill p-amber">${i.rcv} of ${i.qty} received</span>` : (q.st === 'awaiting' || q.st === 'approved') ? '' : '<span class="pill p-gray">On order</span>';
+      return `<div class="prow"><div class="pinfo"><b>${pr.name}</b><small>Qty ${i.qty}${can().cost ? ' · ' + money(i.cost) + ' ea' : ''}</small>${pill ? `<span class="stk">${pill}</span>` : ''}</div></div>`;
     }).join('');
     return `<div class="plabel" style="display:flex;justify-content:space-between;align-items:center"><span>${q.num || 'PO request'} · ${vname(q.vendor) || 'Vendor chosen by the office'}</span><span class="pill p-${poColor(q)}" style="text-transform:none;letter-spacing:0">${poStatus(j, q)}</span></div>
       <div class="pcard">
