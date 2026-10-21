@@ -728,7 +728,7 @@
           <button class="descbox" data-act="desc"><div class="dh"><span>Description</span><span id="descToggle">More</span></div><div class="desc big" id="desc">${j.desc || "No description available."}</div></button>
         </div></div>
 
-        ${retCard(j)}${partsCard(j)}
+        ${retCard(j)}
         <div class="card">
           <div class="irow">${I.cal}<div class="main">Fri, Oct 09 · ${fmt(j.start)} – ${fmt(j.end)}<small>Duration ${dur(j)}</small></div></div>
           <div class="irow">${I.pin}<div class="main">${j.addr}<small>Tap to open in maps</small></div><button class="circ" data-act="toast" data-msg="Opening driving directions…">${I.nav}</button></div>
@@ -1389,7 +1389,7 @@
     requester: { name: 'Approval + handoff',   po: false, cost: false, fin: false }
   };
   let persona = 'buyer', poFrom = null, poOpen = false, poView = 'detail', poDraft = null, compDraft = '', sigDirty = false;
-  let afterSheet = null, usedDraft = {}, vendorThen = false;
+  let afterSheet = null, usedDraft = {}, vendorThen = false, poSel = null;
   const can = () => PERSONAS[persona];
   const money = n => '$' + n.toFixed(2);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1463,15 +1463,14 @@
   const rowSub = j => j.status === 'Waiting on Parts' ? `Waiting for parts · ${stg(pt(j)).label}` : `${fmt(j.start)}${j.changed ? ' · Rescheduled' : ''} · ${addr1(j)}`;
 
   /* ---------- Job Details cards ---------- */
-  function partsCard(j) {
-    const p = pt(j); if (p.st === 'none') return '';
-    const s = stg(p), waiting = j.status === 'Waiting on Parts';
-    return `<div class="card pcj" data-act="parts" role="button"><div class="pad">
+  function poSummary(j) {
+    const p = pt(j), s = stg(p), waiting = j.status === 'Waiting on Parts';
+    return `<div class="card"><div class="pad">
       <div class="stat-top"><span style="display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px">${ic('doc', 24, 1.8)}Purchase Orders</span><span class="pill p-${s.c}">${s.label}</span></div>
       ${waiting ? '<div class="vj"><div class="ok"><span>This visit</span><b>Complete</b></div><div class="open"><span>Overall job</span><b>Waiting for parts</b></div></div>' : ''}
       ${barHTML8(p)}
       <div class="nx"><span>Next: <b>${s.next}</b></span><span>Owner: <b>${s.owner}</b></span></div>
-      ${p.pos.map(q => `<div class="poline"><span class="pill p-${poColor(q)}" style="float:right">${poLabel(q)}</span><b>${q.num || 'PO request'}</b> · ${vname(q.vendor) || 'vendor TBD'}<small>${ntot(q)} item${ntot(q) > 1 ? 's' : ''} · ${q.createdAt}${q.st === 'sent' || q.st === 'partial' || q.st === 'received' ? ` · ${nrecv(q)} of ${ntot(q)} received` : ''}</small></div>`).join('')}
+      ${p.pos.map(q => `<button class="poline" style="display:block;width:100%;text-align:left" data-act="po-open" data-id="${q.id}"><span class="pill p-${poColor(q)}" style="float:right">${poLabel(q)}</span><b>${q.num || 'PO request'}</b> · ${vname(q.vendor) || 'vendor TBD'}<small>${ntot(q)} item${ntot(q) > 1 ? 's' : ''} · ${q.createdAt}${q.st === 'sent' || q.st === 'partial' || q.st === 'received' ? ` · ${nrecv(q)} of ${ntot(q)} received` : ''}</small></button>`).join('')}
       </div></div>`;
   }
   function retCard(j) {
@@ -1499,9 +1498,9 @@
   }
 
   /* ---------- PO screen ---------- */
-  const PO_BACK = { needs: 'form', form: null, detail: null, invoice: null };
-  const PO_BACKTXT = { needs: 'Back', form: 'Job', detail: 'Job', invoice: 'Job' };
-  const poTitle = () => ({ needs: 'Add Products', form: can().po ? 'New Purchase Order' : 'PO Request', detail: 'Purchase Orders', invoice: 'Invoice' }[poView]);
+  const PO_BACK = { needs: 'form', form: null, detail: null, po: 'detail', invoice: null };
+  const PO_BACKTXT = { needs: 'Back', form: 'Job', detail: 'Job', po: 'POs', invoice: 'Job' };
+  const poTitle = () => ({ needs: 'Add Products', form: can().po ? 'New Purchase Order' : 'PO Request', detail: 'Purchase Orders', po: (POS(J()).find(x => x.id === poSel) || {}).num || 'PO request', invoice: 'Invoice' }[poView]);
   const newDraft = () => ({ items: [], notes: '', memo: '', vendor: null, q: '' });
   const stepHTML = (act, id, n) => `<div class="qstep"><button data-act="${act}" data-p="${id}" data-d="-1" aria-label="Decrease">&minus;</button><b>${n}</b><button data-act="${act}" data-p="${id}" data-d="1" aria-label="Increase">+</button></div>`;
   const goPO = v => { poView = v; renderPO(); renderPanel('po-' + v); const b = $('#poBody'); if (b) b.scrollTop = 0; };
@@ -1517,7 +1516,7 @@
   function renderPO() {
     const j = J(); if (!j) return;
     const old = $('#poBody'), top = old ? old.scrollTop : 0;
-    const v = { needs: poNeeds, form: poForm, detail: poDetail, invoice: poInvoice }[poView](j);
+    const v = { needs: poNeeds, form: poForm, detail: poDetail, po: poOne, invoice: poInvoice }[poView](j);
     $('#po').innerHTML = `<div class="navbar"><button class="nback" data-act="po-back">${I.back.replace('width="14" height="22"', 'width="12" height="20"')}&nbsp;${poView === 'form' ? (poFrom === 'invoice' ? 'Invoice' : poFrom === 'detail' ? 'POs' : 'Job') : PO_BACKTXT[poView]}</button><h2>${poTitle()}</h2>${v.right || ''}</div>
       <div class="pobody" id="poBody" style="bottom:${v.foot ? v.fh : 0}px">${v.body}</div>${v.foot ? `<div class="pofoot">${v.foot}</div>` : ''}`;
     $('#poBody').scrollTop = top;
@@ -1612,15 +1611,15 @@
         : msg('doc', 'View', 'Request details') + (q.st === 'awaiting' ? act('po-del', 'trash', 'Cancel', 'danger') : '')}</div>`;
   }
   function poDetail(j) {
-    const p = pt(j), has = p.st !== 'none';
-    let body = '';
-    if (!has) body = '<div class="empty">No purchase orders on this job yet.</div>';
-    else {
-      body += p.pos.map(q => poSection(j, q)).join('');
-    }
-    const foot = [];
-    if (isActive(j) && !j.ret) foot.push(`<button class="pbtn ghost slim" data-act="po-new">${can().po ? 'New Purchase Order' : 'New PO Request'}</button>`);
-    return { body, foot: foot.join(''), fh: 98 };
+    const has = pt(j).st !== 'none';
+    const body = has ? poSummary(j) : '<div class="empty">No purchase orders on this job yet.</div>';
+    const foot = isActive(j) && !j.ret ? `<button class="pbtn ghost slim" data-act="po-new">${can().po ? 'New Purchase Order' : 'New PO Request'}</button>` : '';
+    return { body, foot, fh: 98 };
+  }
+  // One PO in full: status, received state, items, actions
+  function poOne(j) {
+    const q = POS(j).find(x => x.id === poSel);
+    return { body: q ? poSection(j, q) : '<div class="empty">This PO is no longer on the job.</div>' };
   }
 
   function submitPO() {
@@ -1761,6 +1760,7 @@
       case 'persona': persona = d.v; if (sheetKind === 'status' || sheetKind === 'complete') renderSheet(); refreshAll(); toast('Permissions: ' + PERSONAS[persona].name); break;
       case 'demo-next': { const s = demoStep(); if (s) { s.f(); refreshAll(); toast(s.l); } break; }
       case 'parts': if (cur !== null) { if (pt(j).st === 'none') { poDraft = newDraft(); poFrom = null; openPO('form'); } else openPO('detail'); } break;
+      case 'po-open': poSel = d.id; goPO('po'); break;
       case 'po-back': { const b = poView === 'form' ? poFrom : PO_BACK[poView]; if (b) goPO(b); else closePO(); break; }
       case 'po-new': poDraft = newDraft(); poFrom = 'detail'; goPO('form'); break;
       case 'invoice': if (cur !== null) openPO('invoice'); break;
@@ -1785,7 +1785,7 @@
       case 'po-del': {
         const P = POS(j), q = P.find(x => x.id === d.id); P.splice(P.indexOf(q), 1);
         log(j, q.num ? `${q.num} deleted` : 'PO request removed'); toast(can().po ? 'Purchase order deleted' : 'Request cancelled');
-        if (!P.length) closePO(); refreshAll(); break;
+        if (!P.length) closePO(); else if (poView === 'po') goPO('detail'); refreshAll(); break;
       }
       case 'wait-parts': closeSheet(); setTimeout(() => { poDraft = newDraft(); poFrom = null; openPO('form'); }, 380); break;
       case 'wait-confirm': {
@@ -1816,7 +1816,8 @@
     'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Pick the vendor first (required), then add that vendor\'s products. One PO, one vendor; changing the vendor removes products from the old one. Starting from an invoice product line prefills the vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
     vendor: ['Vendor', ['Pick the PO\'s vendor from the company list. It is required, and each PO is for one vendor.', 'Choosing a vendor removes any products on the PO that belong to a different one, and the catalog then lists only that vendor\'s products.'], EV_PO],
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
-    'po-detail': ['Purchase Orders', ['One section per PO, with its own status, vendor, received quantities and actions. A job can have several POs. The job-level stage, owner and next step stay on the Purchase Orders card on Job Details.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'To end the visit, set the job to Waiting on Parts from the status pill. It closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
+    'po-detail': ['Purchase Orders', ['The summary of the job\'s POs: the overall stage, who owns the next step, a progress bar and one row per PO with its status. It is what the POs tile opens, so Job Details stays uncluttered.', 'Tap a PO to open it. A job can have several POs, one per vendor. New Purchase Order adds another.', 'To end the visit for parts, set the job to Waiting on Parts from the status pill.'], EV_PO],
+    'po-po': ['Purchase Order', ['One PO in full: vendor, status, the red / orange / green received state, items with quantities and unit cost, the Inventory Order(s) once something is received, and its actions.', 'Actions follow permissions and match the web: print, email, share and delete for purchasers; view and cancel for requests. Send to Vendor appears for an approved PO you created.', 'Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why stock rises once a part arrives.'], EV_PO],
     waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],

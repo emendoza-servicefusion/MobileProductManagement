@@ -253,3 +253,4 @@ Past and Future tabs; Estimate and Task detail screens; Docs, Equipment, Invoice
 | R44 | Purchase Orders screen: removed the job-level status card with the 8-step tracker (stage, owner, next step). Each PO keeps its own section. The summary bar, owner and next step remain on the Purchase Orders card on Job Details |
 | R45 | Purchase Orders screen: removed the "End Visit · Waiting for Parts" button. The visit now ends only through the status pill (Waiting on Parts), which opens the same sheet |
 | R46 | Stock info removed from the PO form and the PO sections. It remains in the catalog picker and on invoice product lines, where the technician decides what to order |
+| R47 | Job Details no longer shows the Purchase Orders summary card. The POs tile (with a count badge) opens that summary as its own screen (stage bar, next step, owner, a row per PO); tapping a row opens a PO details view (the per-PO section). Supersedes R44's placement of the summary |
