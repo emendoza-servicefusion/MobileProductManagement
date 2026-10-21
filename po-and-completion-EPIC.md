@@ -1,6 +1,6 @@
 # Epic: PO and Completion – Parts to Completion
 
-Jira: SF-43631 · Prototype: [technician-happy-path.html](technician-happy-path.html) (use the **Demo** button, bottom left) · Builds on: [technician-happy-path-EPIC.md](technician-happy-path-EPIC.md)
+Jira: SF-43631 · Prototype: [technician-happy-path.html](technician-happy-path.html) (demo controls are in the notes panel: **Show notes**, top right) · Builds on: [technician-happy-path-EPIC.md](technician-happy-path-EPIC.md)
 Status: Early discovery · Platform: iOS · Source stories: `EPIC_POandCompletion/Parts.docx`
 
 > The prototype is the source of truth for layout and interaction. This Epic captures intent and direct requirements. It extends the happy-path prototype; it does not add a navigation model.
@@ -49,7 +49,7 @@ The Job stays the central record. Parts, POs, visits, documentation, invoice and
 
 ## 5. Demo controls
 
-The **Demo** button (bottom left, also in the side panel) switches permission level and plays the events outside the app: office approves, PO sent, partial receipt, remaining part received, dispatch schedules the return visit, go to the return visit. Reset restores the starting state. The demo job is Greenfield Family Dental (the Home *Next up* job): the run capacitor and fan motor are out of stock, the contactor is on the truck.
+The demo controls in the notes panel (**Show notes**, top right) switch permission level and play the events outside the app: office approves, PO sent, partial receipt, remaining part received, dispatch schedules the return visit, go to the return visit. Reset restores the starting state. The demo job is Greenfield Family Dental (the Home *Next up* job): the run capacitor and fan motor are out of stock, the contactor is on the truck.
 
 ## 6. Out of scope for this prototype
 

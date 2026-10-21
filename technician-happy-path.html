@@ -450,18 +450,12 @@
   .handoff svg { flex:none; margin-top:1px; }
   #sigPad { width:100%; height:170px; background:#fff; border-radius:14px; touch-action:none; display:block; }
   .group .kv { background:var(--card); }
-  #demoFab { position:fixed; left:12px; bottom:12px; z-index:600; background:var(--panel); color:var(--text); font-size:12px; font-weight:700; padding:8px 14px; border-radius:18px; box-shadow:0 4px 16px rgba(0,0,0,.25); }
-  #demoPop { position:fixed; left:12px; bottom:54px; z-index:600; width:290px; background:var(--panel); color:var(--text); border-radius:16px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.35); display:none; font-size:13px; line-height:1.4; }
-  #demoPop.show { display:block; }
-  #demoPop h4, #panel h4.dh { margin:0 0 8px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text2); }
   .dlab { font-size:12px; color:var(--text2); margin:8px 0 4px; }
   .dm { display:flex; gap:4px; background:var(--seg-bg); border-radius:9px; padding:2px; margin-bottom:6px; }
   .dm button { flex:1; padding:7px 4px; border-radius:7px; text-align:center; font-size:12px; line-height:1.2; }
   .dm button.on { background:var(--seg-on); font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.15); }
   .adv { width:100%; background:var(--accent); color:#fff; border-radius:10px; padding:10px; text-align:center; font-weight:600; font-size:13px; margin:2px 0 8px; }
   .adv:disabled { background:var(--seg-bg); color:var(--text3); cursor:default; }
-  #demoPop .ctl { display:flex; gap:8px; }
-  #demoPop .ctl button { flex:1; background:var(--seg-bg); border-radius:10px; padding:8px; text-align:center; font-weight:600; font-size:13px; }
 </style>
 </head>
 <body class="hide-panel">
@@ -547,9 +541,6 @@
 </div>
 </div>
 
-<button id="demoFab" data-act="demo-toggle" aria-label="Show demo controls">Demo</button>
-<div id="demoPop"></div>
-
 <aside id="panel"></aside>
 <button id="panelToggle" data-act="togglePanel" aria-label="Show or hide prototype notes and controls">Show notes</button>
 
@@ -627,7 +618,7 @@
     jobs[3].notes.tech.push({ t: 'Back delivery entrance code is 2290. Ask for Marcus at the dish station. Kitchen is slammed 11:30 to 1:30, so keep door openings short and check the gasket before pulling the evaporator cover.', by: 'Tech note · Daniel O. · Oct 2' });
     jobs[1].products = [{ pid: 'fan14', qty: 1 }, { pid: 'cont40', qty: 1 }];
     closePO(true); poDraft = null; compDraft = ''; afterSheet = null;
-    resetNotif(); closeInbox(); drawerOpen(false); hideBanner(); renderDemo();
+    resetNotif(); closeInbox(); drawerOpen(false); hideBanner();
     renderList(); closeJob(true); closeSheet(); setTab('home'); renderAll();
   }
   const updateClock = () => { $('#clock').textContent = fmt(simMin).replace(/ (AM|PM)/,''); };
@@ -1363,6 +1354,7 @@
     pn.innerHTML = `<h4>Prototype · Happy path + PO &amp; Completion</h4><h3>${t}</h3><ul>${pts.map(p => `<li>${p}</li>`).join('')}</ul><h4>Evidence</h4><p class="ev" style="margin:0 0 16px">${ev}</p>
       <div class="ctl"><button data-act="reset">↺ Reset</button><button data-act="theme">◐ Light / Dark</button></div>
       <div class="ctl"><button data-act="font">Aa Font: ${{ inter:'Inter', jakarta:'Plus Jakarta Sans', system:'iOS System (SF)' }[root.dataset.font]}</button></div>
+      <h4 style="margin-top:18px">PO &amp; Completion demo</h4>${demoHTML()}
       ${notifControls()}
       <p class="ev" style="margin-top:14px"><b>Try it:</b> from Home, fire “Arrive at site” and tap Mark On Site on the push. Then walk the job to Complete. Fire “Leave w/o Complete” to see the card turn red with a Mark Complete button.</p>`;
     pn.scrollTop = top;
@@ -1732,10 +1724,9 @@
       <div class="dlab">Simulate what happens outside the app</div>
       <button class="adv" data-act="demo-next" ${s ? '' : 'disabled'}>${s ? '▸ ' + s.l : 'Start a parts request first'}</button>`;
   }
-  const renderDemo = () => { const el = $('#demoPop'); if (el) el.innerHTML = `<h4>Demo controls</h4>${demoHTML()}<div class="ctl"><button data-act="reset">↺ Reset</button><button data-act="theme">◐ Light / Dark</button></div>`; };
   function refreshAll() {
     if (cur !== null) renderJob();
-    renderList(); renderHome(); renderDemo();
+    renderList(); renderHome();
     if (poOpen) renderPO();
     if (sheetKind === 'complete') { refreshCk(); }
     renderPanel(panelKind);
@@ -1746,7 +1737,6 @@
     const el = e.target.closest('[data-act]'); if (!el) return;
     const d = el.dataset, j = (cur !== null || sheetTarget !== null) ? J() : null;
     switch (d.act) {
-      case 'demo-toggle': $('#demoPop').classList.toggle('show'); break;
       case 'persona': persona = d.v; if (sheetKind === 'status' || sheetKind === 'complete') renderSheet(); refreshAll(); toast('Permissions: ' + PERSONAS[persona].name); break;
       case 'demo-next': { const s = demoStep(); if (s) { s.f(); refreshAll(); toast(s.l); } break; }
       case 'parts': if (cur !== null) { if (pt(j).st === 'none') { poDraft = newDraft(); openPO('needs'); } else openPO('detail'); } break;
@@ -1797,7 +1787,7 @@
     'po-form': ['PO / Request', ['The job and customer are prefilled. Only the fields a technician needs are shown; payment terms, shipping and the other web fields are left out.', 'If the job already has products, a prompt offers to add them. Quantities on the PO never change the job\'s own quantities.', 'New products can also be added to Job Products, and the screen says so for each one.', 'Prices and totals appear only for users allowed to see cost.', 'A technician who needs approval sees a Part Request instead: no PO number yet, vendor optional, no costs.'], EV_PO],
     'po-vendor': ['Vendor', ['Required for a PO. Optional preference on a request. The web form\'s vendor and payment terms come through.'], EV_PO],
     'po-review': ['Review', ['A compact summary before saving: number, vendor, job, products, costs where permitted and notes.', 'Saving confirms the PO and opens it in the job. A request goes to the office as Awaiting approval.'], EV_PO],
-    'po-detail': ['Parts & POs', ['One place to see where the part is, who owns the next step and what happens next. The same eight steps run for both permission levels.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Actions follow permissions: view, email, share and delete for purchasers; view and cancel for requests.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the Demo button (bottom left) to play what the office, vendor and dispatch do.'], EV_PO],
+    'po-detail': ['Parts & POs', ['One place to see where the part is, who owns the next step and what happens next. The same eight steps run for both permission levels.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Actions follow permissions: view, email, share and delete for purchasers; view and cancel for requests.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
     waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving adds the parts to the job and updates the invoice total.'], 'Parts recorded on the job feed the invoice and cost.'],
     addjobprods: ['Job Products', ['Pick which of the job\'s existing products go on the PO and how many. The job\'s own quantities stay as they are.'], EV_PO],
