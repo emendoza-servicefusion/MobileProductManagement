@@ -1548,13 +1548,13 @@
       body: `<div class="plabel">Job</div><div class="pcard">
           <div class="kv"><span>Job</span><b>#${j.num}</b></div><div class="kv"><span>Customer</span><b>${j.name}</b></div>
           <div class="kv"><span>${can().po ? 'PO number' : 'Request'}</span><b>${can().po ? nextNum() + ' · automatic' : 'Number assigned on approval'}</b></div></div>
-        <div class="plabel">${can().po ? 'Vendor' : 'Vendor preference (optional)'}</div>
-        <button class="pcard kvbtn" data-act="po-vendor"><span>${d.vendor ? vname(d.vendor) : can().po ? 'Select a vendor' : 'No preference'}</span>${d.vendor && can().po ? `<small>${VENDORS.find(v => v.id === d.vendor).terms}</small>` : ''}${I.chev}</button>
         ${inv.length ? `<div class="plabel">On the invoice${onPO ? ` · ${onPO} already on a PO` : ''}</div><div class="pcard">${inv.map(x => { const p = prod(x.pid); return `<div class="prow"><div class="pinfo"><b>${p.name}</b><small>Qty ${x.qty} on the invoice${can().cost ? ' · ' + money(p.price) : ''}</small><span class="stk">${stockPill(p)}</span></div><button class="padd" data-act="po-add-inv" data-p="${x.pid}" aria-label="Add ${p.name} to the ${what}">${ic('plus', 20, 2.2)}</button></div>`; }).join('')}${inv.length > 1 ? `<button class="prow addrow" data-act="po-add-all">Add all (${inv.length})</button>` : ''}</div>` : ''}
         <div class="plabel">Products</div>
         <div class="pcard">${d.items.map(item).join('') || '<div class="empty" style="padding:22px">No products yet. Add from the invoice or search the catalog.</div>'}
           <button class="prow addrow" data-act="po-more">${ic('search', 18, 2.2)}Search catalog</button></div>
         ${hasNew && can().fin ? `<div class="pcard" style="margin-top:10px"><div class="srow"><span style="flex:1">Also add new products to the invoice<small>Off by default. It changes what the customer is billed. Quantities here never change what is already on the invoice.</small></span><button class="switch ${d.addJob ? 'on' : ''}" data-act="po-addjob" aria-label="Add new products to the invoice"></button></div></div>` : ''}
+        <div class="plabel">${can().po ? 'Vendor' : 'Vendor preference (optional)'}</div>
+        <button class="pcard kvbtn" data-act="po-vendor"><span>${d.vendor ? vname(d.vendor) : can().po ? 'Select a vendor' : 'No preference'}</span>${d.vendor && can().po ? `<small>${VENDORS.find(v => v.id === d.vendor).terms}</small>` : ''}${I.chev}</button>
         ${can().cost ? `<div class="pcard" style="margin-top:12px"><div class="kv"><span>Estimated total</span><b>${money(total)}</b></div></div>` : ''}
         <div class="plabel">Notes</div><textarea id="pnotes" rows="2" placeholder="${can().po ? 'Message for the vendor or the office' : 'What failed, which unit, anything the office should know'}">${esc(d.notes)}</textarea>`,
       foot: `<div class="hint">${!d.items.length ? 'Add at least one product' : can().po && !d.vendor ? 'Choose a vendor to continue' : 'Next: review before you save'}</div><button class="pbtn ${ok ? '' : 'dis'}" data-act="po-review">Review</button>`,
