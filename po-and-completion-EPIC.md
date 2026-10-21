@@ -9,9 +9,11 @@ Status: Early discovery · Platform: iOS · Source stories: `EPIC_POandCompletio
 
 Let a technician who finds a part is needed carry the job from diagnosis to close-out on the phone, with the right actions for their permissions:
 
-**Job → Parts Needed → stock check → Create PO or Send Request → Waiting on Parts → part received → return visit → completion checklist → Complete Job or Ready for Office Review.**
+**Job → PO button → add products from the invoice (with stock) → Create PO or Send Request → Waiting on Parts → part received → return visit → completion checklist → Complete Job or Ready for Office Review.**
 
-The Job stays the central record. Parts, POs, visits, documentation, invoice and payments all hang off it, and every state shows **stage, owner and next step**.
+The Job stays the central record. POs, visits, documentation, invoice and payments all hang off it, and every state shows **stage, owner and next step**.
+
+**Where products live.** A job starts as one or more estimate options with products and services, the customer wins one, and it converts to a job whose invoice inherits that option's line items. Products are the only part of that which can need a PO. So the prototype has **no separate parts list**: the invoice's products are the starting point, and the PO button appears on jobs only (a PO makes little sense until the estimate is won, and different options carry different products).
 
 ## 2. Problem and evidence
 
@@ -24,7 +26,7 @@ The Job stays the central record. Parts, POs, visits, documentation, invoice and
 
 | | Purchasing + billing | Approval + handoff |
 |---|---|---|
-| Parts Needed button | Create Purchase Order | Send Request to Office |
+| Main button | Create Purchase Order | Send Request to Office |
 | PO number | Automatic (PO-1042) | Assigned on approval |
 | Costs / prices | Shown | Hidden |
 | Vendor | Required | Optional preference |
@@ -34,13 +36,13 @@ The Job stays the central record. Parts, POs, visits, documentation, invoice and
 ## 4. Requirements by story (IDs map to the story numbers in Parts.docx)
 
 ### Parts and PO (Stories 1–7)
-- **S1 Start the parts workflow.** A **Parts** tile on Job Details opens *Parts Needed*. It does not change job status, so the flow is not linear. Search by name or SKU (barcode icon stubbed). Every product shows **stock**: *Out of stock*, *Low · n*, or *n in stock*, with truck and warehouse split. Quantity and notes. The main button follows permissions.
-- **S2 Create a PO from the job.** Job and customer prefilled. Vendor required. If the job already has products, a prompt offers to add them (pick which, adjust quantity; the job's own quantities never change). New products can also be added to Job Products, and the screen says so. Costs only where permitted. Review screen, then a confirmation, and the PO appears on the job.
+- **S1 Start the PO workflow.** A **POs** tile on Job Details (jobs only, never estimates) opens the PO form directly. It does not change job status, so the flow is not linear. **Stock** shows wherever a product appears: *Out of stock*, *Low · n*, or *n in stock*, with truck and warehouse split in the catalog. Notes live on the form. The main button follows permissions.
+- **S2 Create a PO from the job.** Job and customer prefilled. Vendor required. **The invoice's products are listed on the form with stock, one tap each or Add all**; the PO quantity never changes the invoice. A product that is not on the invoice comes from *Search catalog* (products only; services can only be added on estimates and invoices). Adding a new product to the invoice is a separate switch, off by default, shown only to users with invoice rights, because it changes what the customer is billed. Costs only where permitted. Review screen, then a confirmation, and the PO appears on the job.
 - **S3 Request approval.** Same screens, no PO number, no costs, vendor optional. Ends in *Awaiting approval* with the office as owner. Restricted purchasing actions are not shown.
-- **S4 POs on the job.** A Parts card on Job Details and a *Parts & POs* screen show PO number, vendor, item count, created time, status, received and outstanding quantities, inventory order reference, and the next owner. Statuses: Draft, Awaiting approval, Approved, Sent to vendor, Partially received, Received, Closed. Actions by permission: View, Email, Share, Delete (purchasers); View, Cancel (requests).
+- **S4 POs on the job.** A Purchase Orders card on Job Details and a *Purchase Orders* screen show PO number, vendor, item count, created time, status, received and outstanding quantities, inventory order reference, and the next owner. Statuses: Draft, Awaiting approval, Approved, Sent to vendor, Partially received, Received, Closed. Actions by permission: View, Email, Share, Delete (purchasers); View, Cancel (requests).
 - **S5 Pause with a clear owner.** *Waiting on Parts* (the label is customer-defined) is a normal status in the picker. Its sheet states **This visit: Complete / Overall job: Not complete**, the part, PO or request status, next owner and expected next step. The job stays on My Work as active work, with the parts state under it.
 - **S6 Track readiness.** Eight steps: Part requested, Awaiting approval, PO created, Ordered, Partially received, Received, Ready to schedule, Return visit scheduled. A summary bar sits on the job; the full list is on *Parts & POs*. When parts arrive, the owner becomes Dispatch.
-- **S7 Resume.** The return visit shows why you are back, what was received (with the PO), the last note, and *Confirm Parts Used*, which updates Job Products and the invoice total.
+- **S7 Resume.** The return visit shows why you are back, what was received (with the PO), the last note, and *Confirm Parts Used*, which sets the quantities on the invoice and updates its total.
 
 ### Completion (Stories 8–10)
 - **S8 Checklist.** The Complete sheet becomes a checklist built from existing job records: customer signature, parts used, tasks, photos, notes; Completion form and Documents shown as *not applicable* in the demo. Each item is complete, incomplete or not applicable, with an action. **Required vs reminder:** in the demo only the signature is required. The main button stays disabled with "1 required item left" until it is signed; everything else is a reminder.
@@ -53,7 +55,7 @@ The demo controls in the notes panel (**Show notes**, top right) switch permissi
 
 ## 6. Out of scope for this prototype
 
-PO edit after save; PDF preview, email and share (toasts only); receiving against the PO from the phone; the Completion form and Docs screens; partial payments and payment methods; barcode scanning; notifications for parts events (they belong with the Notifications epics); offline behavior.
+PO edit after save; services on POs (not allowed by design); PDF preview, email and share (toasts only); receiving against the PO from the phone; the Completion form and Docs screens; partial payments and payment methods; barcode scanning; notifications for parts events (they belong with the Notifications epics); offline behavior.
 
 ## 7. Dependencies and integration points
 
@@ -76,26 +78,28 @@ PO edit after save; PDF preview, email and share (toasts only); receiving agains
 | PQ-6 | When a part is partly received, can the tech start the return visit, or does the job wait for everything? |
 | PQ-7 | Who is notified, and how, when parts are received or a return visit is scheduled? |
 | PQ-8 | Should "Ready for Office Review" be an existing status or a new default? What does the office see? |
-| PQ-9 | Can a technician add new products to Job Products from a PO, or only from the invoice or estimate? |
+| PQ-9 | Can a technician add a product to the invoice from a PO (the prototype offers an optional switch, off by default, for invoice-rights users), or only from the invoice or estimate? |
+| PQ-10 | Should the PO button be hidden for estimates until they are Won (prototype: jobs only)? Can a job created without an estimate still start a PO? |
 
 ## 9. Acceptance criteria (epic level)
 
 - A purchasing technician can go from a job to a saved PO tied to that job, with existing job products offered and new products added.
+- The invoice's products can be added to a PO with one tap each, and the PO never changes the invoice.
 - A technician who needs approval can send a structured request and then sees *Awaiting approval* with the office as owner.
 - Stock availability is visible before a product is added.
 - Ending a visit for parts leaves the job active, shows who owns the next step, and Home moves on to the next job.
 - Parts progress can be followed from the job through received, ready to schedule and return visit scheduled.
-- On the return visit, the technician sees why they are back and can confirm parts used, which updates Job Products and the invoice total.
+- On the return visit, the technician sees why they are back and can confirm parts used, which sets the invoice quantities and updates its total.
 - The checklist shows required items and reminders. Required items stop completion; reminders do not.
 - Restricted users never see costs, invoice, payment or balance information or the actions for them.
 - A handoff technician finishes with *Ready for Office Review*; a billing technician can complete the job.
 
 ## 10. Suggested story breakdown (for refinement)
 
-1. Parts tile, Parts Needed screen and catalog stock indicators
-2. Create Purchase Order from a job (form, vendor, add job products, review, save)
+1. POs tile on jobs, stock indicators and the catalog product picker
+2. Create Purchase Order from a job (form, vendor, add invoice products, review, save)
 3. Part request for approval (permission variant of 2)
-4. Parts card on Job Details and *Parts & POs* screen (statuses, quantities, actions)
+4. Purchase Orders card on Job Details and *Purchase Orders* screen (statuses, quantities, actions)
 5. Waiting on Parts status and sheet; My Work and Home treatment
 6. Parts tracker and return-visit readiness
 7. Return visit card and Parts Used
