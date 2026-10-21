@@ -412,13 +412,6 @@
   .jprompt b { display:block; font-size:14.5px; }
   .jprompt small { display:block; color:var(--text2); font-size:13px; margin-top:1px; }
   .jprompt .go { background:var(--accent); color:#fff; font-weight:600; font-size:14px; padding:7px 16px; border-radius:16px; }
-  .trk { padding:2px 16px 12px; }
-  .step { display:flex; align-items:center; gap:12px; padding:5px 0; font-size:14.5px; color:var(--text3); }
-  .step i { width:20px; height:20px; border-radius:50%; border:2px solid var(--text3); display:grid; place-items:center; flex:none; font-style:normal; }
-  .step.done { color:var(--text); }
-  .step.done i { background:var(--green); border-color:var(--green); color:#fff; }
-  .step.now { color:var(--text); font-weight:600; }
-  .step.now i { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
   .segbar { display:flex; gap:3px; margin:12px 0 8px; }
   .segbar i { flex:1; height:5px; border-radius:3px; background:var(--seg-bg); }
   .segbar i.d { background:var(--green); }
@@ -1464,7 +1457,6 @@
     }
   }
   const poStatus = (j, q) => jp(j).used && !isActive(j) ? 'Closed' : poLabel(q);
-  const trackerHTML = p => { const s = stg(p); return STEPS.map((t, i) => `<div class="step ${i < s.idx ? 'done' : i === s.idx ? 'now' : ''}"><i>${i < s.idx ? I.tick : ''}</i>${t}</div>`).join(''); };
   const barHTML8 = p => { const s = stg(p); return `<div class="segbar">${STEPS.map((t, i) => `<i class="${i < s.idx ? 'd' : i === s.idx ? 'n' : ''}"></i>`).join('')}</div>`; };
   const nextLabel = j => persona === 'requester' && j.status === 'Started' ? 'Finish & Hand Off' : NEXT_LABEL[j.status];
   const partsLine = j => { if (j.type !== 'job') return ''; const p = pt(j); if (p.st === 'none') return ''; const s = stg(p), what = p.count > 1 ? `${p.count} POs` : p.num ? 'PO' : 'PO request'; return `<br><span class="pl">${what}: ${s.label} · Next: ${s.owner}</span>`; };
@@ -1620,12 +1612,10 @@
         : msg('doc', 'View', 'Request details') + (q.st === 'awaiting' ? act('po-del', 'trash', 'Cancel', 'danger') : '')}</div>`;
   }
   function poDetail(j) {
-    const p = pt(j), s = stg(p), has = p.st !== 'none';
+    const p = pt(j), has = p.st !== 'none';
     let body = '';
     if (!has) body = '<div class="empty">No purchase orders on this job yet.</div>';
     else {
-      body += `<div class="pcard"><div style="padding:14px 16px 4px"><div class="stat-top"><b style="font-size:18px">${s.label}</b><span class="pill p-${s.c}">${s.owner === 'You' ? 'Your move' : 'With ' + s.owner}</span></div>
-          <div class="nx" style="margin-top:6px"><span>Next: <b>${s.next}</b></span></div>${p.count > 1 ? `<div class="nx" style="margin-top:4px"><span>${p.count} purchase orders. The job is ready once all are received.</span></div>` : ''}</div><div class="trk">${trackerHTML(p)}</div></div>`;
       body += p.pos.map(q => poSection(j, q)).join('');
     }
     const foot = [];
@@ -1828,7 +1818,7 @@
     'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Pick the vendor first (required), then add that vendor\'s products. One PO, one vendor; changing the vendor removes products from the old one. Starting from an invoice product line prefills the vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
     vendor: ['Vendor', ['Pick the PO\'s vendor from the company list. It is required, and each PO is for one vendor.', 'Choosing a vendor removes any products on the PO that belong to a different one, and the catalog then lists only that vendor\'s products.'], EV_PO],
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
-    'po-detail': ['Purchase Orders', ['One place to see where the parts are, who owns the next step and what happens next. A job can have several POs; the tracker follows the one furthest behind, and the job is ready to schedule once all are received.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
+    'po-detail': ['Purchase Orders', ['One section per PO, with its own status, vendor, received quantities and actions. A job can have several POs. The job-level stage, owner and next step stay on the Purchase Orders card on Job Details.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
     waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],
