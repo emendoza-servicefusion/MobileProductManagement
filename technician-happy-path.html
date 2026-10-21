@@ -456,7 +456,16 @@
   .dm button.on { background:var(--seg-on); font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.15); }
   .adv { width:100%; background:var(--accent); color:#fff; border-radius:10px; padding:10px; text-align:center; font-weight:600; font-size:13px; margin:2px 0 8px; }
   .adv:disabled { background:var(--seg-bg); color:var(--text3); cursor:default; }
-  .prow.dim { opacity:.45; }
+  .forjob { color:var(--text2); font-size:13.5px; margin:2px 4px 10px; }
+  .irow2 { padding:12px 14px; }
+  .irow2 + .irow2 { border-top:.5px solid var(--sep); }
+  .ihead { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .ihead b { font-size:15.5px; font-weight:600; line-height:1.25; }
+  .icontrols { display:flex; align-items:center; gap:10px; margin:8px 0 6px; }
+  .cost { display:flex; align-items:center; gap:4px; background:var(--seg-bg); border-radius:10px; padding:0 10px; height:34px; color:var(--text2); }
+  .costin { width:70px; border:0; background:none; outline:none; font:inherit; font-size:15px; color:var(--text); text-align:right; }
+  .tot { margin-left:auto; font-size:15px; }
+  .memoin { flex:1; min-width:0; border:0; background:none; outline:none; font:inherit; font-size:15px; color:var(--text); text-align:right; }
   .prow .go { background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:14px; padding:7px 14px; border-radius:16px; flex:none; }
   .vbanner { display:flex; gap:10px; align-items:flex-start; padding:11px 13px; margin-bottom:12px; border-radius:12px; background:var(--accent-soft); color:var(--accent); font-size:13.5px; line-height:1.35; }
   .vbanner span { color:var(--text); }
@@ -1439,8 +1448,8 @@
     return { st, pos: P, count: P.length, items: allItems(P), num: nums.length ? nums.join(', ') : null, byOffice: P.some(p => p.byOffice), used: K.used, waitAt: K.waitAt, visit: K.visit, visitStart: K.visitStart, createdAt: P.length ? P[0].createdAt : '' };
   }
   const nrecv = p => p.items.reduce((a, i) => a + i.rcv, 0), ntot = p => p.items.reduce((a, i) => a + i.qty, 0);
-  const poTotal = p => p.items.reduce((a, i) => a + prod(i.pid).cost * i.qty, 0);
-  const invTotal = j => 189 + (j.products || []).filter(x => !x.pending).reduce((a, x) => a + prod(x.pid).price * x.qty, 0);
+  const poTotal = p => p.items.reduce((a, i) => a + i.cost * i.qty, 0);
+  const invTotal = j => 189 + (j.products || []).reduce((a, x) => a + prod(x.pid).price * x.qty, 0);
   const STEPS = ['Part requested', 'Awaiting approval', 'PO created', 'Ordered', 'Partially received', 'Received', 'Ready to schedule', 'Return visit scheduled'];
   // One place that answers "where is it, who has it, what happens next" for a job's parts.
   function stg(p) {
@@ -1498,10 +1507,10 @@
   }
 
   /* ---------- PO screen ---------- */
-  const PO_BACK = { needs: 'form', form: null, review: 'form', detail: null, invoice: null };
-  const PO_BACKTXT = { needs: 'Back', form: 'Job', review: 'Edit', detail: 'Job', invoice: 'Job' };
-  const poTitle = () => ({ needs: 'Add Products', form: can().po ? 'New Purchase Order' : 'PO Request', review: 'Review', detail: 'Purchase Orders', invoice: 'Invoice' }[poView]);
-  const newDraft = () => ({ items: [], notes: '', vendor: null, addJob: false, q: '' });
+  const PO_BACK = { needs: 'form', form: null, detail: null, invoice: null };
+  const PO_BACKTXT = { needs: 'Back', form: 'Job', detail: 'Job', invoice: 'Job' };
+  const poTitle = () => ({ needs: 'Add Products', form: can().po ? 'New Purchase Order' : 'PO Request', detail: 'Purchase Orders', invoice: 'Invoice' }[poView]);
+  const newDraft = () => ({ items: [], notes: '', memo: '', vendor: null, q: '' });
   const stepHTML = (act, id, n) => `<div class="qstep"><button data-act="${act}" data-p="${id}" data-d="-1" aria-label="Decrease">&minus;</button><b>${n}</b><button data-act="${act}" data-p="${id}" data-d="1" aria-label="Increase">+</button></div>`;
   const goPO = v => { poView = v; renderPO(); renderPanel('po-' + v); const b = $('#poBody'); if (b) b.scrollTop = 0; };
   function openPO(v) {
@@ -1516,76 +1525,61 @@
   function renderPO() {
     const j = J(); if (!j) return;
     const old = $('#poBody'), top = old ? old.scrollTop : 0;
-    const v = { needs: poNeeds, form: poForm, review: poReview, detail: poDetail, invoice: poInvoice }[poView](j);
+    const v = { needs: poNeeds, form: poForm, detail: poDetail, invoice: poInvoice }[poView](j);
     $('#po').innerHTML = `<div class="navbar"><button class="nback" data-act="po-back">${I.back.replace('width="14" height="22"', 'width="12" height="20"')}&nbsp;${poView === 'form' ? (poFrom === 'invoice' ? 'Invoice' : poFrom === 'detail' ? 'POs' : 'Job') : PO_BACKTXT[poView]}</button><h2>${poTitle()}</h2>${v.right || ''}</div>
       <div class="pobody" id="poBody" style="bottom:${v.foot ? v.fh : 0}px">${v.body}</div>${v.foot ? `<div class="pofoot">${v.foot}</div>` : ''}`;
     $('#poBody').scrollTop = top;
     if (v.after) v.after();
   }
 
-  // 1. Add Products: a PO is for one vendor, so once a product is in, only that vendor's products can join
+  // 1. Add Products: search the catalog; once the PO has a vendor, only that vendor's products are listed
   function needsRows() {
     const d = poDraft, j = J(), q = (d.q || '').toLowerCase();
-    const ok = p => !d.vendor || p.vendor === d.vendor;
-    const list = CATALOG.filter(p => !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)).sort((a, b) => ok(b) - ok(a));
-    const rows = list.map(p => {
-      if (!ok(p)) return `<div class="prow dim"><div class="pinfo"><b>${p.name}</b><small>${p.sku} · Different vendor: ${vname(p.vendor)}</small></div></div>`;
-      const it = d.items.find(i => i.pid === p.id), onInv = (j.products || []).some(x => x.pid === p.id), onPo = allItems(POS(j)).some(x => x.pid === p.id);
-      return `<div class="prow ${it ? 'sel' : ''}"><button class="pinfo" data-act="po-toggle" data-p="${p.id}"><b>${p.name}</b><small>${p.sku}${can().cost ? ' · ' + money(p.price) : ''} · ${vname(p.vendor)}${onInv ? ' · On the invoice' : ''}${onPo ? ' · Already on a PO' : ''}</small><span class="stk">${stockPill(p)}<i>${stockWhere(p)}</i></span></button>
+    const rows = CATALOG.filter(p => (!d.vendor || p.vendor === d.vendor) && (!q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))).map(p => {
+      const it = d.items.find(i => i.pid === p.id), onPo = allItems(POS(j)).some(x => x.pid === p.id);
+      return `<div class="prow ${it ? 'sel' : ''}"><button class="pinfo" data-act="po-toggle" data-p="${p.id}"><b>${p.name}</b><small>${p.sku} · ${vname(p.vendor)}${onPo ? ' · Already on a PO' : ''}</small><span class="stk">${stockPill(p)}<i>${stockWhere(p)}</i></span></button>
         ${it ? stepHTML('po-qty', p.id, it.qty) : `<button class="padd" data-act="po-toggle" data-p="${p.id}" aria-label="Add ${p.name}">${ic('plus', 20, 2.2)}</button>`}</div>`;
     }).join('');
     return rows || '<div class="empty" style="padding:24px">No products match.</div>';
   }
   function poNeeds(j) {
-    const d = poDraft, n = d.items.length, what = can().po ? 'PO' : 'request';
+    const d = poDraft, n = d.items.length;
     return {
       right: `<button class="ibtn navr" data-act="toast" data-msg="Scan a barcode – opens the camera" aria-label="Scan barcode">${ic('scan', 22, 1.9)}</button>`,
-      body: `${d.vendor ? `<div class="vbanner">${ic('doc', 18, 2)}<span>This ${what} is for <b>${vname(d.vendor)}</b>. Products from other vendors go on their own ${what}.</span></div>` : '<p class="snote" style="margin:0 4px 10px">Each PO is for one vendor. The first product you add sets it.</p>'}
+      body: `${d.vendor ? `<p class="snote" style="margin:0 4px 10px">Showing ${vname(d.vendor)} products. Change the vendor to see others.</p>` : ''}
         <div class="psearch"><div class="box">${ic('search', 18, 2)}<input id="psearch" placeholder="Search products or SKU" value="${esc(d.q)}" autocomplete="off"></div></div>
         <div class="pcard" id="plist">${needsRows()}</div>`,
-      foot: `<div class="hint">${n ? `${n} product${n > 1 ? 's' : ''} on this ${what}` : 'Pick the products you need'}</div><button class="pbtn ${n ? '' : 'dis'}" data-act="${n ? 'po-back' : 'toast'}" data-msg="Select at least one product">Back to ${what}</button>`,
+      foot: `<div class="hint">${n ? `${n} product${n > 1 ? 's' : ''} on this PO` : 'Pick the products you need'}</div><button class="pbtn ${n ? '' : 'dis'}" data-act="${n ? 'po-back' : 'toast'}" data-msg="Select at least one product">Done</button>`,
       fh: 112,
       after() { $('#psearch').oninput = e => { poDraft.q = e.target.value; $('#plist').innerHTML = needsRows(); }; }
     };
   }
 
-  // 2. The PO (or request) itself: job and customer prefilled; the first product sets the vendor
+  // 2. The PO: the web form cut down to what a technician needs (vendor, memo, items, vendor message)
   function poForm(j) {
-    const d = poDraft, total = d.items.reduce((a, i) => a + prod(i.pid).cost * i.qty, 0), hasNew = d.items.some(i => i.src === 'new');
-    const item = i => { const p = prod(i.pid); return `<div class="prow"><div class="pinfo"><b>${p.name}</b><small>${i.src === 'job' ? 'On the invoice' : d.addJob ? 'New · will be added to the invoice' : 'New · not on the invoice'}${can().cost ? ` · ${money(p.cost)} ea` : ''}</small><span class="stk">${stockPill(p)}</span></div>${stepHTML('po-qty', p.id, i.qty)}<button class="padd" style="background:none;color:var(--red)" data-act="po-remove" data-p="${p.id}" aria-label="Remove ${p.name}">${ic('trash', 19, 1.9)}</button></div>`; };
+    const d = poDraft, sub = d.items.reduce((a, i) => a + i.cost * i.qty, 0);
+    const row = i => { const p = prod(i.pid); return `<div class="irow2"><div class="ihead"><b>${p.name}</b><button class="padd" style="background:none;color:var(--red);width:30px;height:30px" data-act="po-remove" data-p="${p.id}" aria-label="Remove ${p.name}">${ic('trash', 18, 1.9)}</button></div>
+        <div class="icontrols">${stepHTML('po-qty', p.id, i.qty)}${can().cost ? `<label class="cost"><span>$</span><input class="costin" type="number" inputmode="decimal" step="0.01" min="0" value="${i.cost.toFixed(2)}" data-p="${p.id}" aria-label="Unit cost"></label><b class="tot">${money(i.cost * i.qty)}</b>` : ''}</div>
+        <div class="stk">${stockPill(p)}</div></div>`; };
     return {
-      body: `<div class="plabel">Job</div><div class="pcard">
-          <div class="kv"><span>Job</span><b>#${j.num}</b></div><div class="kv"><span>Customer</span><b>${j.name}</b></div>
-          <div class="kv"><span>${can().po ? 'PO number' : 'Request'}</span><b>${can().po ? nextNum() + ' · automatic' : 'Number assigned on approval'}</b></div></div>
-        <div class="plabel">Products</div>
-        <div class="pcard">${d.items.map(item).join('') || '<div class="empty" style="padding:22px">No products yet. Search the catalog, or start from a product line on the invoice.</div>'}
-          <button class="prow addrow" data-act="po-more">${ic('search', 18, 2.2)}${d.items.length ? 'Add another product' : 'Search catalog'}</button></div>
-        ${hasNew && can().fin ? `<div class="pcard" style="margin-top:10px"><div class="srow"><span style="flex:1">Also add new products to the invoice<small>Off by default. It changes what the customer is billed. Quantities here never change what is already on the invoice.</small></span><button class="switch ${d.addJob ? 'on' : ''}" data-act="po-addjob" aria-label="Add new products to the invoice"></button></div></div>` : ''}
-        <div class="plabel">Vendor</div>
-        <div class="pcard"><div class="kv"><span>Vendor</span><b>${d.vendor ? vname(d.vendor) : 'Set by the first product'}</b></div>${d.vendor && can().po ? `<div class="kv"><span>Terms</span><b>${VENDORS.find(v => v.id === d.vendor).terms}</b></div>` : ''}</div>
-        <p class="snote">One vendor per PO. For products from another vendor, create another PO.</p>
-        ${can().cost ? `<div class="pcard" style="margin-top:12px"><div class="kv"><span>Estimated total</span><b>${money(total)}</b></div></div>` : ''}
-        <div class="plabel">Notes</div><textarea id="pnotes" rows="2" placeholder="${can().po ? 'Message for the vendor or the office' : 'What failed, which unit, anything the office should know'}">${esc(d.notes)}</textarea>`,
-      foot: `<div class="hint">${d.items.length ? 'Next: review before you save' : 'Add at least one product'}</div><button class="pbtn ${d.items.length ? '' : 'dis'}" data-act="po-review">Review</button>`,
+      body: `<div class="forjob">For job #${j.num} · ${j.name}</div>
+        <div class="pcard">
+          <button class="kv" style="width:100%;align-items:center" data-act="vend-open"><span>Vendor</span><b style="display:flex;align-items:center;gap:6px;${d.vendor ? '' : 'color:var(--accent)'}">${d.vendor ? vname(d.vendor) : 'Select'}${I.chev}</b></button>
+          <div class="kv"><span>${can().po ? 'PO number' : 'Request'}</span><b>${can().po ? nextNum() : 'Assigned on approval'}</b></div>
+          <div class="kv"><span>Date</span><b>10/09/2026</b></div>
+          <div class="kv" style="align-items:center"><span>Reference / Memo</span><input id="pmemo" class="memoin" placeholder="Optional" value="${esc(d.memo)}"></div></div>
+        <div class="plabel">Item list</div>
+        <div class="pcard">${d.items.map(row).join('') || '<div class="empty" style="padding:22px">No products yet.</div>'}
+          <button class="prow addrow" data-act="po-more">${ic('plus', 18, 2.2)}Add product</button></div>
+        ${can().cost ? `<div class="pcard" style="margin-top:12px"><div class="kv"><span>Item subtotal</span><b>${money(sub)}</b></div></div>` : ''}
+        <div class="plabel">Vendor message</div><textarea id="pnotes" rows="2" placeholder="Optional">${esc(d.notes)}</textarea>`,
+      foot: `<div class="hint">${d.items.length ? (can().cost ? `Subtotal ${money(sub)}` : 'The office reviews your request') : 'Add at least one product'}</div><button class="pbtn ${d.items.length ? '' : 'dis'}" data-act="po-create">${can().po ? 'Create Purchase Order' : 'Send Request to Office'}</button>`,
       fh: 112,
-      after() { $('#pnotes').oninput = e => { poDraft.notes = e.target.value; }; }
-    };
-  }
-
-  function poReview(j) {
-    const d = poDraft, total = d.items.reduce((a, i) => a + prod(i.pid).cost * i.qty, 0), newOnes = d.items.filter(i => i.src === 'new');
-    return {
-      body: `<div class="plabel">${can().po ? 'Purchase order' : 'Request for the office'}</div><div class="pcard">
-          <div class="kv"><span>${can().po ? 'PO number' : 'Request'}</span><b>${can().po ? nextNum() : 'Awaiting approval'}</b></div>
-          <div class="kv"><span>Vendor</span><b>${d.vendor ? vname(d.vendor) : 'Office will choose'}</b></div>
-          <div class="kv"><span>Job</span><b>#${j.num}</b></div><div class="kv"><span>Customer</span><b>${j.name}</b></div></div>
-        <div class="plabel">Products</div><div class="pcard">${d.items.map(i => { const p = prod(i.pid); return `<div class="kv"><span style="color:var(--text)">${p.name}<small style="display:block;color:var(--text2);font-size:12.5px">Qty ${i.qty}${can().cost ? ` · ${money(p.cost)} ea` : ''}</small></span>${can().cost ? `<b>${money(p.cost * i.qty)}</b>` : ''}</div>`; }).join('')}
-          ${can().cost ? `<div class="kv"><span>Estimated total</span><b>${money(total)}</b></div>` : ''}</div>
-        ${d.notes.trim() ? `<div class="plabel">Notes</div><div class="pcard"><div class="kv" style="display:block;line-height:1.4">${esc(d.notes)}</div></div>` : ''}
-        ${newOnes.length ? `<p class="snote">${d.addJob ? 'New products will also be added to the invoice.' : 'New products will not be added to the invoice.'}</p>` : ''}
-        ${can().po ? '' : '<p class="snote">The office reviews your request, approves it and places the order. You will see its status on the job.</p>'}`,
-      foot: `<button class="pbtn" data-act="po-confirm">${can().po ? 'Create Purchase Order' : 'Send Request to Office'}</button>`,
-      fh: 98
+      after() {
+        $('#pnotes').oninput = e => { poDraft.notes = e.target.value; };
+        $('#pmemo').oninput = e => { poDraft.memo = e.target.value; };
+        $$('#po .costin').forEach(inp => { inp.onchange = () => { const it = poDraft.items.find(i => i.pid === inp.dataset.p); it.cost = Math.max(0, parseFloat(inp.value) || 0); renderPO(); }; });
+      }
     };
   }
 
@@ -1596,7 +1590,7 @@
     const row = x => {
       const p = prod(x.pid), q = ordered[x.pid], enough = stock(p) >= x.qty;
       const act = q ? `<span class="pill p-${poColor(q)}">${q.num ? 'On ' + q.num : 'On PO request'}</span>` : isActive(j) ? `<button class="go" data-act="inv-po" data-p="${x.pid}">${can().po ? 'Create PO' : 'Request PO'}</button>` : '';
-      return `<div class="prow"><div class="pinfo"><b>${p.name}${x.pending ? ' <span class="rtag soft">Pending</span>' : ''}</b><small>Qty ${x.qty}${can().fin ? ' · ' + money(p.price * x.qty) : ''} · ${vname(p.vendor)}</small><span class="stk">${stockPill(p)}${enough && !q ? '<i>Enough in stock, no PO needed</i>' : ''}</span></div>${act}</div>`;
+      return `<div class="prow"><div class="pinfo"><b>${p.name}</b><small>Qty ${x.qty}${can().fin ? ' · ' + money(p.price * x.qty) : ''} · ${vname(p.vendor)}</small><span class="stk">${stockPill(p)}${enough && !q ? '<i>Enough in stock, no PO needed</i>' : ''}</span></div>${act}</div>`;
     };
     return { body: `<div class="plabel">${can().fin ? 'INV-20418 · Line items' : 'Products on this job'}</div>
       <div class="pcard">${prods.map(row).join('')}<div class="prow"><div class="pinfo"><b>Service call &amp; labor</b><small>Service${can().fin ? ' · $189.00' : ''}</small></div></div></div>
@@ -1610,7 +1604,7 @@
     const msg = (ico, l, m) => act('toast', ico, l).replace('data-act="toast"', `data-act="toast" data-msg="${m}"`);
     const items = q.items.map(i => {
       const pr = prod(i.pid), pill = i.rcv >= i.qty ? '<span class="pill p-green">Received</span>' : i.rcv ? `<span class="pill p-amber">${i.rcv} of ${i.qty} received</span>` : (q.st === 'awaiting' || q.st === 'approved') ? stockPill(pr) : '<span class="pill p-gray">On order</span>';
-      return `<div class="prow"><div class="pinfo"><b>${pr.name}</b><small>Qty ${i.qty}${can().cost ? ' · ' + money(pr.cost) + ' ea' : ''}</small><span class="stk">${pill}</span></div></div>`;
+      return `<div class="prow"><div class="pinfo"><b>${pr.name}</b><small>Qty ${i.qty}${can().cost ? ' · ' + money(i.cost) + ' ea' : ''}</small><span class="stk">${pill}</span></div></div>`;
     }).join('');
     return `<div class="plabel" style="display:flex;justify-content:space-between;align-items:center"><span>${q.num || 'PO request'} · ${vname(q.vendor) || 'Vendor chosen by the office'}</span><span class="pill p-${poColor(q)}" style="text-transform:none;letter-spacing:0">${poStatus(j, q)}</span></div>
       <div class="pcard">
@@ -1619,7 +1613,7 @@
         <div class="kv"><span>Received</span><b><i class="rdot r-${q.st === 'received' ? 'g' : q.st === 'partial' ? 'o' : 'r'}"></i>${q.st === 'received' ? 'In full' : q.st === 'partial' ? 'Partially' : 'Not received'}</b></div>${q.ios.length ? `<div class="kv"><span>Inventory order${q.ios.length > 1 ? 's' : ''}</span><b>${q.ios.map(x => x.no + ' · ' + x.wh).join('<br>')}</b></div>` : ''}
         ${can().cost && q.num ? `<div class="kv"><span>Estimated total</span><b>${money(poTotal(q))}</b></div>` : ''}
         ${items}
-        ${q.notes.trim() ? `<div class="kv" style="display:block;line-height:1.4"><span style="display:block;font-size:12px">Notes</span>${esc(q.notes)}</div>` : ''}</div>
+        ${q.memo ? `<div class="kv"><span>Reference</span><b>${esc(q.memo)}</b></div>` : ''}${q.notes.trim() ? `<div class="kv" style="display:block;line-height:1.4"><span style="display:block;font-size:12px">Vendor message</span>${esc(q.notes)}</div>` : ''}</div>
       ${can().po && q.st === 'approved' && !q.byOffice ? `<button class="pbtn slim" style="width:100%;margin-top:10px" data-act="po-send" data-id="${q.id}">Send to Vendor</button>` : ''}
       <div class="acts4" style="margin-top:10px">${can().po
         ? msg('doc', 'Print', 'Print preview') + msg('mail', 'Email', `Emailing ${q.num} to ${vname(q.vendor)}…`) + msg('share', 'Share', 'Share sheet') + (q.st === 'approved' || q.st === 'awaiting' ? act('po-del', 'trash', 'Delete', 'danger') : '')
@@ -1642,8 +1636,7 @@
 
   function submitPO() {
     const j = J(), d = poDraft;
-    const q = { id: 'q' + (poId++), num: null, st: 'awaiting', vendor: d.vendor, notes: d.notes, createdAt: fmt(simMin), ios: [], byOffice: false, items: d.items.map(i => ({ pid: i.pid, qty: i.qty, rcv: 0, src: i.src })) };
-    if (d.addJob) d.items.filter(i => i.src === 'new').forEach(i => { j.products = j.products || []; if (!j.products.some(x => x.pid === i.pid)) j.products.push({ pid: i.pid, qty: i.qty, pending: true }); });
+    const q = { id: 'q' + (poId++), num: null, st: 'awaiting', vendor: d.vendor, notes: d.notes, memo: d.memo, createdAt: fmt(simMin), ios: [], byOffice: false, items: d.items.map(i => ({ pid: i.pid, qty: i.qty, cost: i.cost, rcv: 0, src: i.src })) };
     if (can().po) { q.st = 'approved'; q.num = nextNum(); poSeq++; log(j, `Purchase order ${q.num} created · ${vname(q.vendor)}`); }
     else log(j, 'PO request sent to the office for approval');
     POS(j).push(q); poDraft = null; poView = 'detail'; advanceClock(3);
@@ -1701,6 +1694,10 @@
       sh.innerHTML = head('Parts Used') + `<div class="sheet-body"><p style="color:var(--text2);font-size:14px;margin:0 4px 10px">Confirm what you installed. This sets the quantities on the invoice.</p>
           <div class="group">${p.items.map(i => `<div class="opt" style="cursor:default"><span style="flex:1;min-width:0"><b style="font-weight:600;font-size:16px">${prod(i.pid).name}</b><small class="cl" style="margin:2px 0 0">${i.rcv} received${p.num ? ' · ' + p.num : ''}</small></span>${stepHTML('used-qty', i.pid, usedDraft[i.pid] ?? 0)}</div>`).join('')}</div></div>
         <div class="sheet-foot"><button class="pbtn" style="width:100%" data-act="used-confirm">Save Parts Used</button></div>`;
+    }
+    if (sheetKind === 'vendor') {
+      sh.innerHTML = head('Vendor') + `<div class="sheet-body"><div class="group">${VENDORS.map(v => `<button class="opt ${poDraft.vendor === v.id ? 'cur' : ''}" data-act="vend-pick" data-v="${v.id}"><span style="flex:1"><b style="font-weight:600">${v.name}</b><small class="cl" style="margin:2px 0 0">${v.terms}${v.pref ? ' · Preferred' : ''}</small></span>${poDraft.vendor === v.id ? I.ok : ''}</button>`).join('')}</div>
+          <p style="color:var(--text2);font-size:12px;margin:10px 6px">Each PO is for one vendor. Changing it removes products from other vendors.</p></div>`;
     }
     if (sheetKind === 'sign') {
       sh.innerHTML = head('Customer Signature') + `<div class="sheet-body"><p style="color:var(--text2);font-size:14px;margin:0 4px 10px">Ask ${j.contact ? j.contact.split(' · ')[0] : j.name} to sign with a finger.</p>
@@ -1778,26 +1775,26 @@
       case 'po-back': { const b = poView === 'form' ? poFrom : PO_BACK[poView]; if (b) goPO(b); else closePO(); break; }
       case 'po-new': poDraft = newDraft(); poFrom = 'detail'; goPO('form'); break;
       case 'invoice': if (cur !== null) openPO('invoice'); break;
-      case 'inv-po': { const x = (j.products || []).find(x => x.pid === d.p); poDraft = newDraft(); poDraft.vendor = prod(d.p).vendor; poDraft.items.push({ pid: d.p, qty: x.qty, src: 'job' }); poFrom = 'invoice'; goPO('form'); break; }
+      case 'inv-po': { const x = (j.products || []).find(x => x.pid === d.p); poDraft = newDraft(); poDraft.vendor = prod(d.p).vendor; poDraft.items.push({ pid: d.p, qty: x.qty, cost: prod(d.p).cost, src: 'job' }); poFrom = 'invoice'; goPO('form'); break; }
       case 'po-toggle': {
         const it = poDraft.items.find(i => i.pid === d.p), pr = prod(d.p);
         if (it) poDraft.items.splice(poDraft.items.indexOf(it), 1);
-        else if (poDraft.vendor && pr.vendor !== poDraft.vendor) { toast(`This PO is for ${vname(poDraft.vendor)}. Make another PO for ${vname(pr.vendor)}.`); break; }
-        else { poDraft.items.push({ pid: d.p, qty: 1, src: (j.products || []).some(x => x.pid === d.p) ? 'job' : 'new' }); poDraft.vendor = pr.vendor; }
-        if (!poDraft.items.length) poDraft.vendor = null;
+        else { poDraft.items.push({ pid: d.p, qty: 1, cost: pr.cost, src: (j.products || []).some(x => x.pid === d.p) ? 'job' : 'new' }); if (!poDraft.vendor) poDraft.vendor = pr.vendor; }
         renderPO(); break;
       }
       case 'po-qty': { const it = poDraft.items.find(i => i.pid === d.p); if (it) { it.qty += +d.d; if (it.qty < 1) poDraft.items.splice(poDraft.items.indexOf(it), 1); } if (!poDraft.items.length) poDraft.vendor = null; renderPO(); break; }
       case 'po-remove': poDraft.items = poDraft.items.filter(i => i.pid !== d.p); if (!poDraft.items.length) poDraft.vendor = null; renderPO(); break;
-      case 'po-next': if (!poDraft.items.length) toast('Select at least one part'); else goPO('form'); break;
       case 'po-more': goPO('needs'); break;
-      case 'po-addjob': poDraft.addJob = !poDraft.addJob; renderPO(); break;
-      case 'po-review': if (!poDraft.items.length) toast('Add at least one product'); else goPO('review'); break;
-      case 'po-confirm': submitPO(); break;
+      case 'po-create': if (!poDraft.items.length) toast('Add at least one product'); else submitPO(); break;
+      case 'vend-open': openSheet('vendor'); break;
+      case 'vend-pick': {
+        poDraft.vendor = d.v; const gone = poDraft.items.filter(i => prod(i.pid).vendor !== d.v).length;
+        poDraft.items = poDraft.items.filter(i => prod(i.pid).vendor === d.v);
+        closeSheet(); renderPO(); if (gone) toast(`Removed ${gone} product${gone > 1 ? 's' : ''} from other vendors`); break;
+      }
       case 'po-send': { const q = POS(j).find(x => x.id === d.id); q.st = 'sent'; log(j, `${q.num} sent to ${vname(q.vendor)}`); advanceClock(5); toast(`${q.num} sent to ${vname(q.vendor)}`); refreshAll(); break; }
       case 'po-del': {
         const P = POS(j), q = P.find(x => x.id === d.id); P.splice(P.indexOf(q), 1);
-        const keep = new Set(allItems(P).map(i => i.pid)); j.products = (j.products || []).filter(x => !(x.pending && !keep.has(x.pid)));
         log(j, q.num ? `${q.num} deleted` : 'PO request removed'); toast(can().po ? 'Purchase order deleted' : 'Request cancelled');
         if (!P.length) closePO(); refreshAll(); break;
       }
@@ -1813,7 +1810,7 @@
       case 'used-qty': usedDraft[d.p] = Math.max(0, (usedDraft[d.p] || 0) + +d.d); renderSheet(); break;
       case 'used-confirm': {
         const p = pt(j); j.products = j.products || [];
-        p.items.forEach(i => { const n = usedDraft[i.pid] || 0; if (!jp(j).used && n > 0) { const pr = prod(i.pid), w = Math.min(pr.wh, n); pr.wh -= w; pr.truck = Math.max(0, pr.truck - (n - w)); } const e = j.products.find(x => x.pid === i.pid); if (n > 0) { if (e) { e.qty = n; delete e.pending; } else j.products.push({ pid: i.pid, qty: n }); } else if (e && e.pending) j.products.splice(j.products.indexOf(e), 1); });
+        p.items.forEach(i => { const n = usedDraft[i.pid] || 0; if (!jp(j).used && n > 0) { const pr = prod(i.pid), w = Math.min(pr.wh, n); pr.wh -= w; pr.truck = Math.max(0, pr.truck - (n - w)); } const e = j.products.find(x => x.pid === i.pid); if (n > 0) { if (e) e.qty = n; else j.products.push({ pid: i.pid, qty: n }); } });
         jp(j).used = true; log(j, 'Parts used recorded'); toast('Products recorded on the invoice'); backToComplete(); refreshAll(); break;
       }
       case 'sign': if (sheetKind === 'complete') { afterSheet = 'complete'; closeSheet(); setTimeout(() => openSheet('sign'), 380); } break;
@@ -1827,10 +1824,10 @@
   /* ---------- review panel copy for the new screens ---------- */
   const EV_PO = 'Productboard: field PO and parts access is a steady ask all year (97 of 314 tracked citations in 2026). Gong: the office wants to keep ordering authority, with technicians flagging “waiting on parts” on the job.';
   Object.assign(P, {
-    'po-needs': ['Add Products', ['Search the catalog for a product that is not on the invoice yet. Search by name or SKU, or scan a barcode.', 'Each PO is for one vendor. The first product you add sets it; after that only that vendor\'s products can be added, and the others are dimmed with their vendor named.', 'Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'Products only, from the catalog. Services can only be added on estimates and invoices, so they never appear here.'], EV_PO],
-    'po-form': ['New PO / PO Request', ['The PO button sits on the job, never on estimates. A PO makes sense once the estimate is won and converted to a job.', 'The job and customer are prefilled. Only the fields a technician needs are shown; payment terms, shipping and the other web fields are left out.', 'Start from a product line on the invoice, or search the catalog. Either way the product\'s vendor becomes the PO\'s vendor, and the vendor row is read-only.', 'A product that is not on the invoice comes from the catalog. Adding it to the invoice is a separate, optional switch that is off by default, because it changes what the customer pays.', 'Prices and totals appear only for users allowed to see cost.', 'A technician who needs approval sees a PO Request instead: no PO number yet, no costs.'], EV_PO],
+    'po-needs': ['Add Products', ['Search the catalog by name or SKU, or scan a barcode. Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'The first product sets the PO\'s vendor. After that only that vendor\'s products are listed; change the vendor to see others.', 'Products only, from the catalog. Services can only be added on estimates and invoices.'], EV_PO],
+    'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Vendor is required and comes from the product. Changing it removes products from other vendors. One PO, one vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
+    vendor: ['Vendor', ['Pick the PO\'s vendor from the company list. It is required, and each PO is for one vendor.', 'Choosing a vendor removes any products on the PO that belong to a different one, and the catalog then lists only that vendor\'s products.'], EV_PO],
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
-    'po-review': ['Review', ['A compact summary before saving: number, vendor, job, products, costs where permitted and notes.', 'Saving confirms the PO and opens it in the job. A request goes to the office as Awaiting approval.'], EV_PO],
     'po-detail': ['Purchase Orders', ['One place to see where the parts are, who owns the next step and what happens next. A job can have several POs; the tracker follows the one furthest behind, and the job is ready to schedule once all are received.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
     waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
