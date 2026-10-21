@@ -41,7 +41,7 @@ Heap data (last 90 days to Oct 7):
 - **Info card** [JD-5, 6, 9]: date/time/duration, address with a circular directions button, and contact name (plus role for commercial customers where the data exists). Assigned To, Custom Fields and Additional Visits stay as quiet rows.
 - **Shortcut row** [JD-7]: Notes first, then Tasks, Docs, Equipment, Invoice, with count badges (notes count, tasks done/total).
 - **Sticky bottom action bar** [JD-4]: one primary button naming the next step (I've Arrived / Start Job / Complete Job / Resume Job), a Pause button while Started, and "Back to My Work" when finished. Hidden for Scheduled jobs. *Open (Q-2).*
-- **Job timer** [JD-3] while Started/Paused. *Open (Q-4).*
+- ~~Job timer [JD-3]~~ *Dropped: no timer appears when a job is Started.*
 - Tabs (Details / Customer Info / Photos / Sign) and the edit pencil are unchanged.
 
 ### 4.3 Status, Notes, Tasks and Complete sheets

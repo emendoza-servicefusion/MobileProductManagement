@@ -58,7 +58,7 @@ Last updated: 2026-10-20
 |---|---|---|---|---|
 | JD-1 | Status card: object icon + status capsule (tappable; the capsule is the only status control). The "Change Status" link was removed as redundant | Icon + status text + "Change Status" link | Capsule already opens the picker | Decided |
 | JD-2 | ~~Lifecycle stepper~~ (On The Way → On Site → Started → Completed with timestamps) | None | Dropped: redundant to the status pill; status history stays in Activity Logs | **Dropped** |
-| JD-3 | Running on-the-job timer while Started/Paused | None | Time awareness (ties to Clock In) | Open (Q-4: relation to Time/Clock In) |
+| JD-3 | Running on-the-job timer while Started/Paused | None | Time awareness (ties to Clock In) | Dropped (R49) |
 | JD-4 | Sticky bottom action bar with one primary button naming the next step (not shown for Scheduled jobs, so there is no big On The Way button; set it from the status pill) (I've Arrived / Start Job / Complete Job / Resume Job); Pause button while Started; "Back to My Work" when finished | Status changes only via "Change Status" | P2, thumb reach | **Open** (Q-2) |
 | JD-5 | Info card combines date/time/duration, address with a circular directions button, and contact. The contact row shows the name only: no phone number and no call or message buttons (calling and texting live in the Primary contact sheet on Home) | Separate Status/Date card, "No Address" card with full-width Get Driving Directions button | Less clutter | Decided; call/message buttons are new (Q-5) |
 | JD-6 | Contact shows person and role for commercial customers (e.g. "Dana Whitfield · Office Manager") | Contact name only | Realism for commercial jobs | Provisional (data model) |
@@ -255,3 +255,4 @@ Past and Future tabs; Estimate and Task detail screens; Docs, Equipment, Invoice
 | R46 | Stock info removed from the PO form and the PO sections. It remains in the catalog picker and on invoice product lines, where the technician decides what to order |
 | R47 | Job Details no longer shows the Purchase Orders summary card. The POs tile (with a count badge) opens that summary as its own screen (stage bar, next step, owner, a row per PO); tapping a row opens a PO details view (the per-PO section). Supersedes R44's placement of the summary |
 | R48 | Choosing Waiting on Parts from the status pill now simply updates the status. The confirmation sheet (visit / job summary, PO list, note field) is removed; the visit-vs-job clarity lives on the Purchase Orders screen. Supersedes the sheet part of S5 |
+| R49 | Removed the on-the-job timer that appeared on Job Details once the status was Started or Paused (JD-3). Q-4 (timer vs Time / Clock In) no longer applies |

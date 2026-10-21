@@ -111,8 +111,6 @@
   .stat-top { display:flex; align-items:center; justify-content:space-between; }
   .stat-top .chip { font-size:14px; padding:4px 11px; }
   .link { color:var(--accent); font-size:15px; text-decoration:underline; }
-  .timer { margin-top:14px; padding-top:12px; border-top:.5px solid var(--sep); display:flex; align-items:center; justify-content:space-between; color:var(--text2); font-size:15px; }
-  .timer b { color:var(--green); font-variant-numeric:tabular-nums; font-size:20px; }
   .irow { display:flex; align-items:center; gap:12px; padding:12px 16px; }
   .irow + .irow { border-top:.5px solid var(--sep); }
   .irow .main { flex:1; min-width:0; }
@@ -703,17 +701,11 @@
   let sheetTarget = null; // job targeted by a status capsule tapped in the My Work list
   const J = () => jobs[cur !== null ? cur : sheetTarget];
   function tasksDone(j) { return j.tasks.filter(t => t.d).length; }
-  function elapsed(j) {
-    const base = j.stamps && j.stamps.startedReal; if (!base) return '0:00:00';
-    const s = Math.floor((Date.now() - base) / 1000) + (j.accum||0);
-    return `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  }
 
   function renderJob() {
     const j = J(); if (!j) return;
     const fin = !isActive(j);
     const td = tasksDone(j), tn = j.tasks.length, nc = j.notes.tech.length + j.notes.job.length;
-    const timer = (j.status === 'Started' || j.status === 'Paused') ? `<div class="timer"><span>${I.clock.replace('<svg','<svg style="display:inline;vertical-align:-4px;margin-right:6px"')}On the job</span><b id="timerVal">${elapsed(j)}</b></div>` : '';
     const sc = (key, icon, label, badge, bc) => `<button class="sc" data-act="${key}"><div class="tile">${icon}${badge!==''?`<span class="badge ${bc||''}">${badge}</span>`:''}</div>${label}</button>`;
     $('#job').innerHTML = `
       <div class="jnav">
@@ -724,7 +716,6 @@
       <div class="jscroll">
         <div class="card"><div class="pad">
           <div class="stat-top"><span style="display:flex;align-items:center;gap:10px">${objIcon(j, 30)}${chip(j)}</span></div>
-          ${timer}
           <button class="descbox" data-act="desc"><div class="dh"><span>Description</span><span id="descToggle">More</span></div><div class="desc big" id="desc">${j.desc || "No description available."}</div></button>
         </div></div>
 
@@ -776,9 +767,7 @@
   function setStatus(j, s, opts = {}) {
     const prev = j.status; j.status = s; j.stamps = j.stamps || {};
     if (['On The Way','On Site','Started'].includes(s) && !j.stamps[s]) j.stamps[s] = fmt(simMin).replace(' ', ' ');
-    if (s === 'Started' && prev !== 'Paused') { j.stamps.startedReal = Date.now(); j.accum = 0; }
-    if (s === 'Started' && prev === 'Paused') { j.stamps.startedReal = Date.now(); log(j, 'Resumed'); }
-    if (s === 'Paused' || s === 'Waiting on Parts') { if (j.stamps.startedReal) j.accum = (j.accum||0) + Math.floor((Date.now() - j.stamps.startedReal)/1000); j.stamps.startedReal = null; }
+    if (s === 'Started' && prev === 'Paused') log(j, 'Resumed');
     if (s === 'Completed' || s === 'Partially Completed' || s === 'Ready for Office Review') { j.stamps.Completed = fmt(simMin).replace(' ', ' '); j.completedAt = fmt(simMin); }
     if (!(s === 'Started' && prev === 'Paused')) log(j, 'Status changed to ' + s);
     if (s === 'On Site') j.onsiteAt = simMin;
@@ -792,7 +781,7 @@
     const s = j.status;
     if (s === 'Scheduled') { setStatus(j, 'On The Way'); toast('On The Way · office notified'); }
     else if (s === 'On The Way') { setStatus(j, 'On Site'); toast('On Site · arrival logged'); }
-    else if (s === 'On Site') { setStatus(j, 'Started'); toast('Job started · timer running'); }
+    else if (s === 'On Site') { setStatus(j, 'Started'); toast('Job started'); }
     else if (s === 'Paused') { setStatus(j, 'Started', { minutes: 5 }); toast('Resumed'); }
     else if (s === 'Started') openSheet('complete');
   }
@@ -897,7 +886,6 @@
     else if (a === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('sf-theme', root.dataset.theme); }
   });
   $('#scrim').onclick = () => { closeSheet(); if (cur !== null) renderJob(); };
-  setInterval(() => { const t = $('#timerVal'); if (t && cur !== null && J().status === 'Started') t.textContent = elapsed(J()); }, 1000);
 
   /* =====================================================================
      Home + notifications
