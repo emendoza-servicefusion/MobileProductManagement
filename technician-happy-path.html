@@ -782,6 +782,7 @@
     if (s === 'Completed' || s === 'Partially Completed' || s === 'Ready for Office Review') { j.stamps.Completed = fmt(simMin).replace(' ', ' '); j.completedAt = fmt(simMin); }
     if (!(s === 'Started' && prev === 'Paused')) log(j, 'Status changed to ' + s);
     if (s === 'On Site') j.onsiteAt = simMin;
+    if (s === 'Waiting on Parts') jp(j).waitAt = fmt(simMin);
     resolveNotifs(j, s);   // any notification that asked for this status is now done, wherever it was changed from
     advanceClock(opts.minutes ?? 7);
     if (cur !== null) renderJob();
@@ -866,7 +867,6 @@
       const s = el.dataset.s; closeSheet();
       if (s === 'Completed' || s === 'Partially Completed') { outcome = s; setTimeout(() => openSheet('complete'), 380); }
       else if (s === 'Ready for Office Review') { outcome = 'Completed'; setTimeout(() => openSheet('complete'), 380); }
-      else if (s === 'Waiting on Parts') setTimeout(() => openSheet('waiting'), 380);
       else if (s !== j.status) { setStatus(j, s); toast('Status: ' + s); }
     }
     else if (a === 'notes') { notesTab = 'job'; openSheet('notes'); }
@@ -1666,17 +1666,6 @@
 
   function renderPOSheet(sh, j) {
     const head = (t, r) => `<div class="grab"></div><div class="sheet-head"><h3>${t}</h3><button class="link" style="text-decoration:none" data-act="closeSheet">${r || 'Cancel'}</button></div>`;
-    if (sheetKind === 'waiting') {
-      const p = pt(j), s = stg(p), none = p.st === 'none';
-      sh.innerHTML = head('Waiting on Parts') + `<div class="sheet-body">
-          <div class="vj big"><div class="ok"><span>This visit</span><b>Complete</b></div><div class="open"><span>Overall job</span><b>Not complete</b></div></div>
-          ${none ? '<div class="group"><div class="nudge"><span class="ic warn">' + I.warn + '</span><div>No parts requested yet<small>Add the part first so the office knows what to order.</small></div><button class="go" data-act="wait-parts">Add Part</button></div></div>'
-            : `<div class="group"><div class="kv"><span>Required part</span><b>${p.items.map(i => prod(i.pid).name).join(', ')}</b></div>${p.pos.map(q => `<div class="kv"><span>${q.num || 'Request'}</span><b>${vname(q.vendor) || 'Vendor TBD'} · ${poLabel(q)}</b></div>`).join('')}<div class="kv"><span>Next owner</span><b>${s.owner}</b></div><div class="kv"><span>Expected next step</span><b>${s.next}</b></div></div>`}
-          <div style="font-size:13px;color:var(--text2);margin:16px 4px 6px">NOTE FOR THE OFFICE (OPTIONAL)</div>
-          <textarea id="waitNote" rows="2" placeholder="Where you left off, what to bring back"></textarea>
-          <p style="color:var(--text2);font-size:12px;margin:8px 4px">The job stays on your list as active work. Your company can rename this status.</p></div>
-        <div class="sheet-foot"><button class="pbtn amber" style="width:100%" data-act="wait-confirm">Set Waiting on Parts</button></div>`;
-    }
     if (sheetKind === 'used') {
       const p = pt(j);
       sh.innerHTML = head('Parts Used') + `<div class="sheet-body"><p style="color:var(--text2);font-size:14px;margin:0 4px 10px">Confirm what you installed. This sets the quantities on the invoice.</p>
@@ -1787,13 +1776,6 @@
         log(j, q.num ? `${q.num} deleted` : 'PO request removed'); toast(can().po ? 'Purchase order deleted' : 'Request cancelled');
         if (!P.length) closePO(); else if (poView === 'po') goPO('detail'); refreshAll(); break;
       }
-      case 'wait-parts': closeSheet(); setTimeout(() => { poDraft = newDraft(); poFrom = null; openPO('form'); }, 380); break;
-      case 'wait-confirm': {
-        const v = $('#waitNote').value.trim(); jp(j).waitAt = fmt(simMin);
-        if (v) { j.notes.job.push({ t: v, by: `Waiting on parts · You · ${fmt(simMin)}` }); log(j, 'Note added'); }
-        closeSheet(); if (poOpen) closePO(true); setStatus(j, 'Waiting on Parts', { minutes: 3 });
-        toast('Waiting on Parts · office notified'); clearTimeout(doneTimer); doneTimer = setTimeout(() => { if (cur !== null) closeJob(); }, 1300); break;
-      }
       case 'confirmParts': { const p = pt(j); usedDraft = {}; p.items.forEach(i => { const e = (j.products || []).find(x => x.pid === i.pid); usedDraft[i.pid] = p.used && e ? e.qty : i.rcv; }); if (sheetKind === 'complete') { afterSheet = 'complete'; closeSheet(); setTimeout(() => openSheet('used'), 380); } else openSheet('used'); break; }
       case 'used-qty': usedDraft[d.p] = Math.max(0, (usedDraft[d.p] || 0) + +d.d); renderSheet(); break;
       case 'used-confirm': {
@@ -1818,7 +1800,6 @@
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
     'po-detail': ['Purchase Orders', ['The summary of the job\'s POs: the overall stage, who owns the next step, a progress bar and one row per PO with its status. It is what the POs tile opens, so Job Details stays uncluttered.', 'Tap a PO to open it. A job can have several POs, one per vendor. New Purchase Order adds another.', 'To end the visit for parts, set the job to Waiting on Parts from the status pill.'], EV_PO],
     'po-po': ['Purchase Order', ['One PO in full: vendor, status, the red / orange / green received state, items with quantities and unit cost, the Inventory Order(s) once something is received, and its actions.', 'Actions follow permissions and match the web: print, email, share and delete for purchasers; view and cancel for requests. Send to Vendor appears for an approved PO you created.', 'Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why stock rises once a part arrives.'], EV_PO],
-    waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],
   });
