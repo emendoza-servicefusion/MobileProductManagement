@@ -1,7 +1,7 @@
 # Technician Happy Path – Change & Test Tracker
 
 Jira: SF-43094 · Prototype: [technician-happy-path.html](technician-happy-path.html) (iOS, iPhone) · Earlier base: [my-work.html](my-work.html)
-Last updated: 2026-10-13
+Last updated: 2026-10-20
 
 **Purpose.** One place to track every design change in the prototype against the current Android app, so each can be scoped, built and tested individually. This is an *evolution* of today's experience (same navigation, same terminology), not a redesign.
 
@@ -240,3 +240,6 @@ Past and Future tabs; Estimate and Task detail screens; Docs, Equipment, Invoice
 | R31 | Job Details: phone number and call/message buttons removed from the contact row (JD-5); supersedes R27 |
 | R32 | Job Details order: status + description, date/address/contact, then the assignee group (Assigned to, Custom Fields, Additional Visits), then shortcuts; supersedes R28 (JD-9) |
 | R33 | Unread-count badge removed from the bell (HN-9) |
+| R34 | PO and Completion epic added to this prototype ([po-and-completion-EPIC.md](po-and-completion-EPIC.md), SF-43631): Parts tile, Parts Needed with stock indicators, PO / Part Request form, vendor picker, review, Parts & POs screen, Waiting on Parts sheet, return-visit card, Parts Used sheet, completion checklist with a required signature, invoice and payment summary, Ready for Office Review. Demo button added for permission level and simulated office / vendor / dispatch events |
+| R35 | Behaviour change: the Complete sheet now blocks completion until the customer signature is captured (all jobs); other items stay reminders. Supersedes "reminders never block" for the signature only (PQ-1, PQ-2) |
+| R36 | Job Details shortcuts: six tiles (Notes, Tasks, Parts, Docs, Equipment, Invoice); tile width now flexes. Info card duration reads the job's real duration |
