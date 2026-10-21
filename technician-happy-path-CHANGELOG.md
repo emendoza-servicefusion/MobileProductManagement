@@ -257,3 +257,4 @@ Past and Future tabs; Estimate and Task detail screens; Docs, Equipment, Invoice
 | R48 | Choosing Waiting on Parts from the status pill now simply updates the status. The confirmation sheet (visit / job summary, PO list, note field) is removed; the visit-vs-job clarity lives on the Purchase Orders screen. Supersedes the sheet part of S5 |
 | R49 | Removed the on-the-job timer that appeared on Job Details once the status was Started or Paused (JD-3). Q-4 (timer vs Time / Clock In) no longer applies |
 | R50 | Choosing Partially Completed from the status pill now simply updates the status; the Complete sheet no longer opens for it. Completed still opens the checklist (signature required) |
+| R51 | Complete sheet: removed the Completed / Partially Completed tabs. The sheet only completes the job (Complete Job, or Ready for Office Review without invoice rights). Partially Completed remains available from the status pill, where it just updates the status (R50) |

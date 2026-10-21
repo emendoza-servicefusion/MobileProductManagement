@@ -586,7 +586,7 @@
   };
 
   /* ---------- state ---------- */
-  let simMin, jobs, cur, sheetKind, notesTab, outcome, doneTimer;
+  let simMin, jobs, cur, sheetKind, notesTab, doneTimer;
   const fmt = m => { let h = Math.floor(m/60), mm = String(m%60).padStart(2,'0'); const ap = h>=12?'PM':'AM'; h = h%12||12; return `${h}:${mm} ${ap}`; };
   const cls = s => s.replace(/\s/g,'');
   const NEXT_STATUS = { 'Scheduled':'On The Way', 'On The Way':'On Site', 'On Site':'Started', 'Started':'Completed', 'Paused':'Started' };
@@ -594,7 +594,7 @@
   const NEXT_LABEL = { 'Scheduled':'On The Way', 'On The Way':"I've Arrived", 'On Site':'Start Job', 'Started':'Complete Job', 'Paused':'Resume Job' };
 
   function reset() {
-    simMin = 9*60+12; notesTab = 'job'; outcome = 'Completed'; cur = null; sheetKind = null;
+    simMin = 9*60+12; notesTab = 'job'; cur = null; sheetKind = null;
     const task = t => ({ t, d:false });
     jobs = [
       { id:0, name:'Priya Natarajan', addr:'2210 Maple Ave, Dublin, OH 43017', as:'Jordan Reyes', num:'1094418820', start:8*60, end:9*60, status:'Completed', completedAt:'8:52 AM', phone:'(614) 555-0113',
@@ -854,8 +854,8 @@
     else if (a === 'status') openSheet('status');
     else if (a === 'pickStatus') {
       const s = el.dataset.s; closeSheet();
-      if (s === 'Completed') { outcome = s; setTimeout(() => openSheet('complete'), 380); }
-      else if (s === 'Ready for Office Review') { outcome = 'Completed'; setTimeout(() => openSheet('complete'), 380); }
+      if (s === 'Completed') setTimeout(() => openSheet('complete'), 380);
+      else if (s === 'Ready for Office Review') setTimeout(() => openSheet('complete'), 380);
       else if (s !== j.status) { setStatus(j, s); toast('Status: ' + s); }
     }
     else if (a === 'notes') { notesTab = 'job'; openSheet('notes'); }
@@ -868,15 +868,14 @@
       j.notes[notesTab].push({ t: v, by: `You · ${fmt(simMin)}` }); log(j, (notesTab==='tech'?'Tech':'Job') + ' note added'); renderSheet();
     }
     else if (a === 'toggleTask') { const t = j.tasks[+el.dataset.i]; t.d = !t.d; renderSheet(); }
-    else if (a === 'outcome') { outcome = el.dataset.o; const keep = $('#compNote') ? $('#compNote').value : ''; renderSheet(); $('#compNote').value = keep; }
     else if (a === 'reviewTasks') { closeSheet(); setTimeout(() => openSheet('tasks'), 380); }
     else if (a === 'confirmComplete') {
       if (ckStats(j).reqLeft) { toast('Customer signature is required'); return; }
       const v = $('#compNote').value.trim();
       if (v) { j.notes.job.push({ t: v, by: `Completion note · You · ${fmt(simMin)}` }); log(j, 'Completion note added'); }
-      const end = can().fin ? outcome : 'Ready for Office Review'; compDraft = '';
+      const end = can().fin ? 'Completed' : 'Ready for Office Review'; compDraft = '';
       closeSheet(); setStatus(j, end, { minutes: 3 });
-      toast(end === 'Completed' ? 'Job completed ✓' : end === 'Ready for Office Review' ? 'Handed off to the office ✓' : 'Marked partially completed');
+      toast(end === 'Completed' ? 'Job completed ✓' : 'Handed off to the office ✓');
       clearTimeout(doneTimer); doneTimer = setTimeout(() => { if (cur !== null) closeJob(); }, 1300);
     }
     else if (a === 'desc') { const d = $('#desc'); d.classList.toggle('open'); $('#descToggle').textContent = d.classList.contains('open') ? 'Less' : 'More'; }
@@ -1307,7 +1306,7 @@
     status: ['Change Status', ['Kept for the long tail: Paused, Partially Completed, Completed and office-defined custom statuses.'], 'Custom job status ~85k, Paused ~65k, Partially Completed ~215k changes.'],
     notes: ['Notes', ['Same three tabs: Tech Notes, Job Notes, Activity Logs.', '“Add Note” moves from the header to a composer pinned at the bottom – write straight away, no extra screen.', 'Status changes appear automatically in Activity Logs.'], 'Job Notes opened by ~23k users / 90 days – the single most-opened job area.'],
     tasks: ['Tasks', ['Tap to check off. Progress feeds the badge on the shortcut tile and the completion reminders.'], 'Tasks ~12.9k users / 90 days.'],
-    complete: ['Complete', ['Completion Notes, outcome (Completed / Partially Completed) and a reminder checklist in one sheet instead of separate steps.', 'Reminders are soft – they never block completion.', 'After completing you return to My Work, and the job moves to “Done today”.'], 'Completion Notes ~15.6k users; Completed is the #1 status change.']
+    complete: ['Complete', ['Completion Notes and a reminder checklist in one sheet instead of separate steps.', 'Reminders are soft – they never block completion.', 'After completing you return to My Work, and the job moves to “Done today”.'], 'Completion Notes ~15.6k users; Completed is the #1 status change.']
   };
   P.home = ['Home', [
     'Home stops being a menu of six equal tiles and becomes a starting point: what is next, what needs me, am I clocked in.',
@@ -1647,7 +1646,7 @@
     return h;
   }
   function ckFootHTML(j) {
-    const rl = ckStats(j).reqLeft, lbl = can().fin ? (outcome === 'Completed' ? 'Complete Job' : 'Mark Partially Completed') : 'Ready for Office Review';
+    const rl = ckStats(j).reqLeft, lbl = can().fin ? 'Complete Job' : 'Ready for Office Review';
     return `<button class="pbtn ${rl ? 'dis' : can().fin ? 'green' : ''}" style="width:100%" data-act="confirmComplete">${lbl}</button>${rl ? `<div class="hint" style="text-align:center;color:var(--text2);font-size:13px;margin-top:8px">${rl} required item left</div>` : ''}`;
   }
   const refreshCk = () => { const j = J(); if (sheetKind !== 'complete' || !j) return; $('#ckBox').innerHTML = ckHTML(j); $('#ckFoot').innerHTML = ckFootHTML(j); };
@@ -1672,9 +1671,7 @@
     }
     if (sheetKind === 'complete') {
       sh.innerHTML = head('Complete Job') + `<div class="sheet-body">
-          ${can().fin ? `<div class="seg" style="margin:0 0 14px"><div class="thumb" style="width:calc((100% - 4px)/2);transform:translateX(${outcome === 'Completed' ? 0 : 100}%)"></div>
-            <button class="${outcome === 'Completed' ? 'on' : ''}" data-act="outcome" data-o="Completed">Completed</button><button class="${outcome !== 'Completed' ? 'on' : ''}" data-act="outcome" data-o="Partially Completed">Partially Completed</button></div>`
-            : '<div class="handoff">' + ic('users', 18, 2) + '<span>You are handing this job back to the office. They will invoice and close it out.</span></div>'}
+          ${can().fin ? '' : '<div class="handoff">' + ic('users', 18, 2) + '<span>You are handing this job back to the office. They will invoice and close it out.</span></div>'}
           <div style="font-size:13px;color:var(--text2);margin:0 4px 6px">COMPLETION NOTES</div>
           <textarea id="compNote" rows="3" placeholder="What was done? Anything the office should know?"></textarea>
           <div id="ckBox">${ckHTML(j)}</div></div>
@@ -1791,7 +1788,7 @@
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],
   });
-  P.complete = ['Complete', ['One sheet with the outcome, completion notes and a checklist that reads from existing job records.', 'Required items (here, only the customer signature) must be done before the main button works. Everything else is a reminder and never blocks.', 'Items show complete, incomplete or not applicable, each with an action that opens the relevant screen.', 'With purchasing and billing permissions, you also see the invoice, payments and balance, and finish with Complete Job.', 'Without them, financial details stay hidden and you finish with Ready for Office Review.', 'Which items warn and which block is a discovery question; this demo shows the concept.'], 'Churn: “Requires too many steps or clicks” is the top Field Worker App cancel reason (24 primary). Gong: customers want completion gatekeepers for signatures, photos and notes.'];
+  P.complete = ['Complete', ['One sheet with completion notes and a checklist that reads from existing job records.', 'Required items (here, only the customer signature) must be done before the main button works. Everything else is a reminder and never blocks.', 'Items show complete, incomplete or not applicable, each with an action that opens the relevant screen.', 'With purchasing and billing permissions, you also see the invoice, payments and balance, and finish with Complete Job.', 'Without them, financial details stay hidden and you finish with Ready for Office Review.', 'Which items warn and which block is a discovery question; this demo shows the concept.'], 'Churn: “Requires too many steps or clicks” is the top Field Worker App cancel reason (24 primary). Gong: customers want completion gatekeepers for signatures, photos and notes.'];
   P.job[1].push('A POs tile starts a purchase order from the job (jobs only, not estimates). Once one exists, a Purchase Orders card shows the stage, owner and next step. Return visits add a card explaining why you are back.');
 
   root.dataset.theme = localStorage.getItem('sf-theme') || 'dark';
