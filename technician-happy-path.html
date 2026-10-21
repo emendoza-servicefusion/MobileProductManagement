@@ -410,10 +410,6 @@
   .jprompt b { display:block; font-size:14.5px; }
   .jprompt small { display:block; color:var(--text2); font-size:13px; margin-top:1px; }
   .jprompt .go { background:var(--accent); color:#fff; font-weight:600; font-size:14px; padding:7px 16px; border-radius:16px; }
-  .segbar { display:flex; gap:3px; margin:12px 0 8px; }
-  .segbar i { flex:1; height:5px; border-radius:3px; background:var(--seg-bg); }
-  .segbar i.d { background:var(--green); }
-  .segbar i.n { background:var(--accent); }
   .nx { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:var(--text2); }
   .nx b { color:var(--text); font-weight:600; }
   .pcj { cursor:pointer; }
@@ -1430,21 +1426,19 @@
   const nrecv = p => p.items.reduce((a, i) => a + i.rcv, 0), ntot = p => p.items.reduce((a, i) => a + i.qty, 0);
   const poTotal = p => p.items.reduce((a, i) => a + i.cost * i.qty, 0);
   const invTotal = j => 189 + (j.products || []).reduce((a, x) => a + prod(x.pid).price * x.qty, 0);
-  const STEPS = ['Part requested', 'Awaiting approval', 'PO created', 'Ordered', 'Partially received', 'Received', 'Ready to schedule', 'Return visit scheduled'];
   // One place that answers "where is it, who has it, what happens next" for a job's parts.
   function stg(p) {
     switch (p.st) {
-      case 'awaiting':  return { label: 'Awaiting approval', owner: 'Office', next: 'Approve the request and order the part', idx: 1, c: 'amber' };
-      case 'approved':  return { label: 'Approved', owner: p.byOffice ? 'Office' : 'You', next: p.byOffice ? 'Order from the vendor' : 'Send the PO to the vendor', idx: 2, c: 'blue' };
-      case 'sent':      return { label: 'Sent to vendor', owner: 'Vendor', next: 'Ship the parts', idx: 3, c: 'blue' };
-      case 'partial':   return { label: 'Partially received', owner: 'Office', next: 'Receive the remaining parts', idx: 4, c: 'amber' };
-      case 'received':  return { label: 'Ready to schedule', owner: 'Dispatch', next: 'Schedule the return visit', idx: 6, c: 'green' };
-      case 'scheduled': return { label: 'Return visit scheduled', owner: 'You', next: 'Return at ' + p.visit, idx: 8, c: 'green' };
-      default:          return { label: 'No parts requested', owner: '—', next: 'Add a part to start', idx: 0, c: 'gray' };
+      case 'awaiting':  return { label: 'Awaiting approval', owner: 'Office', next: 'Approve the request and order the part', c: 'amber' };
+      case 'approved':  return { label: 'Approved', owner: p.byOffice ? 'Office' : 'You', next: p.byOffice ? 'Order from the vendor' : 'Send the PO to the vendor', c: 'blue' };
+      case 'sent':      return { label: 'Sent to vendor', owner: 'Vendor', next: 'Ship the parts', c: 'blue' };
+      case 'partial':   return { label: 'Partially received', owner: 'Office', next: 'Receive the remaining parts', c: 'amber' };
+      case 'received':  return { label: 'Ready to schedule', owner: 'Dispatch', next: 'Schedule the return visit', c: 'green' };
+      case 'scheduled': return { label: 'Return visit scheduled', owner: 'You', next: 'Return at ' + p.visit, c: 'green' };
+      default:          return { label: 'No parts requested', owner: '—', next: 'Add a part to start', c: 'gray' };
     }
   }
   const poStatus = (j, q) => jp(j).used && !isActive(j) ? 'Closed' : poLabel(q);
-  const barHTML8 = p => { const s = stg(p); return `<div class="segbar">${STEPS.map((t, i) => `<i class="${i < s.idx ? 'd' : i === s.idx ? 'n' : ''}"></i>`).join('')}</div>`; };
   const nextLabel = j => persona === 'requester' && j.status === 'Started' ? 'Finish & Hand Off' : NEXT_LABEL[j.status];
   const partsLine = j => { if (j.type !== 'job') return ''; const p = pt(j); if (p.st === 'none') return ''; const s = stg(p), what = p.count > 1 ? `${p.count} POs` : p.num ? 'PO' : 'PO request'; return `<br><span class="pl">${what}: ${s.label} · Next: ${s.owner}</span>`; };
   const rowSub = j => j.status === 'Waiting on Parts' ? `Waiting for parts · ${stg(pt(j)).label}` : `${fmt(j.start)}${j.changed ? ' · Rescheduled' : ''} · ${addr1(j)}`;
@@ -1455,7 +1449,6 @@
     return `<div class="card"><div class="pad">
       <div class="stat-top"><span style="display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px">${ic('doc', 24, 1.8)}Purchase Orders</span><span class="pill p-${s.c}">${s.label}</span></div>
       ${waiting ? '<div class="vj"><div class="ok"><span>This visit</span><b>Complete</b></div><div class="open"><span>Overall job</span><b>Waiting for parts</b></div></div>' : ''}
-      ${barHTML8(p)}
       <div class="nx"><span>Next: <b>${s.next}</b></span><span>Owner: <b>${s.owner}</b></span></div>
       ${p.pos.map(q => `<button class="poline" style="display:block;width:100%;text-align:left" data-act="po-open" data-id="${q.id}"><span class="pill p-${poColor(q)}" style="float:right">${poLabel(q)}</span><b>${q.num || 'PO request'}</b> · ${vname(q.vendor) || 'vendor TBD'}<small>${ntot(q)} item${ntot(q) > 1 ? 's' : ''} · ${q.createdAt}${q.st === 'sent' || q.st === 'partial' || q.st === 'received' ? ` · ${nrecv(q)} of ${ntot(q)} received` : ''}</small></button>`).join('')}
       </div></div>`;
@@ -1782,7 +1775,7 @@
     'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Pick the vendor first (required), then add that vendor\'s products. One PO, one vendor; changing the vendor removes products from the old one. Starting from an invoice product line prefills the vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
     vendor: ['Vendor', ['Pick the PO\'s vendor from the company list. It is required, and each PO is for one vendor.', 'Choosing a vendor removes any products on the PO that belong to a different one, and the catalog then lists only that vendor\'s products.'], EV_PO],
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
-    'po-detail': ['Purchase Orders', ['The summary of the job\'s POs: the overall stage, who owns the next step, a progress bar and one row per PO with its status. It is what the POs tile opens, so Job Details stays uncluttered.', 'Tap a PO to open it. A job can have several POs, one per vendor. New Purchase Order adds another.', 'To end the visit for parts, set the job to Waiting on Parts from the status pill.'], EV_PO],
+    'po-detail': ['Purchase Orders', ['The summary of the job\'s POs: the overall stage, who owns the next step and one row per PO with its status. It is what the POs tile opens, so Job Details stays uncluttered.', 'Tap a PO to open it. A job can have several POs, one per vendor. New Purchase Order adds another.', 'To end the visit for parts, set the job to Waiting on Parts from the status pill.'], EV_PO],
     'po-po': ['Purchase Order', ['One PO in full: vendor, status, the red / orange / green received state, items with quantities and unit cost, the Inventory Order(s) once something is received, and its actions.', 'Actions follow permissions and match the web: print, email, share and delete for purchasers; view and cancel for requests. Send to Vendor appears for an approved PO you created.', 'Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why stock rises once a part arrives.'], EV_PO],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],

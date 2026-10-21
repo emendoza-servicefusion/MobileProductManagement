@@ -259,3 +259,4 @@ Past and Future tabs; Estimate and Task detail screens; Docs, Equipment, Invoice
 | R50 | Choosing Partially Completed from the status pill now simply updates the status; the Complete sheet no longer opens for it. Completed still opens the checklist (signature required) |
 | R51 | Complete sheet: removed the Completed / Partially Completed tabs. The sheet only completes the job (Complete Job, or Ready for Office Review without invoice rights). Partially Completed remains available from the status pill, where it just updates the status (R50) |
 | R52 | Complete checklist: removed the footnote ("Required items must be done to finish. Reminders never stop you.") and the Reminder capsules. Only the Required capsule remains, on the customer signature. Incomplete optional items are still marked with the orange icon and an action |
+| R53 | Purchase Orders screen: removed the progress bar. The stage pill, Next and Owner, and a row per PO remain |
