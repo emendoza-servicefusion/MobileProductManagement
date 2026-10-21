@@ -1634,11 +1634,10 @@
     return { left, reqLeft: L.filter(i => i.req && !i.ok).length };
   }
   function ckHTML(j) {
-    const row = i => `<div class="nudge"><span class="ic ${i.ok ? 'ok' : i.req ? 'req' : 'warn'}">${i.ok ? I.ok : I.warn}</span><div>${i.t}${i.req ? `<span class="rtag ${i.ok ? 'soft' : ''}">Required</span>` : !i.ok ? '<span class="rtag soft">Reminder</span>' : ''}<small>${i.sub}</small></div>${!i.ok && i.act ? `<button class="go" data-act="${i.act}">${i.l}</button>` : ''}</div>`;
+    const row = i => `<div class="nudge"><span class="ic ${i.ok ? 'ok' : i.req ? 'req' : 'warn'}">${i.ok ? I.ok : I.warn}</span><div>${i.t}${i.req ? `<span class="rtag ${i.ok ? 'soft' : ''}">Required</span>` : ''}<small>${i.sub}</small></div>${!i.ok && i.act ? `<button class="go" data-act="${i.act}">${i.l}</button>` : ''}</div>`;
     const bal = j.paid ? 0 : invTotal(j), st = ckStats(j);
     let h = `<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin:16px 4px 6px"><span>COMPLETION CHECKLIST</span><span>${st.left ? st.left + ' to do' : 'All clear'}</span></div>
       <div class="group">${ckItems(j).map(row).join('')}<div class="nudge"><span class="ic na">–</span><div>Not applicable<small>Completion form · Documents</small></div></div></div>
-      <p style="color:var(--text2);font-size:12px;margin:8px 4px">Required items must be done to finish. Reminders never stop you.</p>
       <div style="font-size:13px;color:var(--text2);margin:16px 4px 6px">INVOICE &amp; PAYMENT</div>`;
     h += can().fin
       ? `<div class="group"><div class="kv"><span>Invoice</span><b>INV-20418 · Sent</b></div><div class="kv"><span>Total</span><b>${money(invTotal(j))}</b></div><div class="kv"><span>Paid</span><b>${money(j.paid ? invTotal(j) : 0)}</b></div><div class="kv"><span>Balance</span><b style="color:${bal ? 'var(--orange)' : 'var(--green)'}">${money(bal)}</b></div>${bal ? '<button class="opt" style="justify-content:center;color:var(--accent);font-weight:600" data-act="pay">Collect Payment</button>' : ''}</div>`
