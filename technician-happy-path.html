@@ -1396,7 +1396,7 @@
     requester: { name: 'Approval + handoff',   po: false, cost: false, fin: false }
   };
   let persona = 'buyer', poFrom = null, poOpen = false, poView = 'detail', poDraft = null, compDraft = '', sigDirty = false;
-  let afterSheet = null, usedDraft = {};
+  let afterSheet = null, usedDraft = {}, vendorThen = false;
   const can = () => PERSONAS[persona];
   const money = n => '$' + n.toFixed(2);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1546,7 +1546,7 @@
     const d = poDraft, n = d.items.length;
     return {
       right: `<button class="ibtn navr" data-act="toast" data-msg="Scan a barcode – opens the camera" aria-label="Scan barcode">${ic('scan', 22, 1.9)}</button>`,
-      body: `${d.vendor ? `<p class="snote" style="margin:0 4px 10px">Showing ${vname(d.vendor)} products. Change the vendor to see others.</p>` : ''}
+      body: `${d.vendor ? `<p class="snote" style="margin:0 4px 10px">${vname(d.vendor)} products. Select one or more, or search. To order from another vendor, change the vendor on the PO.</p>` : ''}
         <div class="psearch"><div class="box">${ic('search', 18, 2)}<input id="psearch" placeholder="Search products or SKU" value="${esc(d.q)}" autocomplete="off"></div></div>
         <div class="pcard" id="plist">${needsRows()}</div>`,
       foot: `<div class="hint">${n ? `${n} product${n > 1 ? 's' : ''} on this PO` : 'Pick the products you need'}</div><button class="pbtn ${n ? '' : 'dis'}" data-act="${n ? 'po-back' : 'toast'}" data-msg="Select at least one product">Done</button>`,
@@ -1564,16 +1564,16 @@
     return {
       body: `<div class="forjob">For job #${j.num} · ${j.name}</div>
         <div class="pcard">
-          <button class="kv" style="width:100%;align-items:center" data-act="vend-open"><span>Vendor</span><b style="display:flex;align-items:center;gap:6px;${d.vendor ? '' : 'color:var(--accent)'}">${d.vendor ? vname(d.vendor) : 'Select'}${I.chev}</b></button>
+          <button class="kv" style="width:100%;align-items:center" data-act="vend-open"><span>Vendor</span><b style="display:flex;align-items:center;gap:6px;${d.vendor ? '' : 'color:var(--accent)'}">${d.vendor ? vname(d.vendor) : 'Choose a vendor'}${I.chev}</b></button>
           <div class="kv"><span>${can().po ? 'PO number' : 'Request'}</span><b>${can().po ? nextNum() : 'Assigned on approval'}</b></div>
           <div class="kv"><span>Date</span><b>10/09/2026</b></div>
           <div class="kv" style="align-items:center"><span>Reference / Memo</span><input id="pmemo" class="memoin" placeholder="Optional" value="${esc(d.memo)}"></div></div>
         <div class="plabel">Item list</div>
-        <div class="pcard">${d.items.map(row).join('') || '<div class="empty" style="padding:22px">No products yet.</div>'}
+        <div class="pcard">${d.items.map(row).join('') || `<div class="empty" style="padding:22px">${d.vendor ? 'No products yet.' : 'Choose a vendor first, then add its products.'}</div>`}
           <button class="prow addrow" data-act="po-more">${ic('plus', 18, 2.2)}Add product</button></div>
         ${can().cost ? `<div class="pcard" style="margin-top:12px"><div class="kv"><span>Item subtotal</span><b>${money(sub)}</b></div></div>` : ''}
         <div class="plabel">Vendor message</div><textarea id="pnotes" rows="2" placeholder="Optional">${esc(d.notes)}</textarea>`,
-      foot: `<div class="hint">${d.items.length ? (can().cost ? `Subtotal ${money(sub)}` : 'The office reviews your request') : 'Add at least one product'}</div><button class="pbtn ${d.items.length ? '' : 'dis'}" data-act="po-create">${can().po ? 'Create Purchase Order' : 'Send Request to Office'}</button>`,
+      foot: `<div class="hint">${!d.vendor ? 'Choose a vendor first' : d.items.length ? (can().cost ? `Subtotal ${money(sub)}` : 'The office reviews your request') : 'Add at least one product'}</div><button class="pbtn ${d.vendor && d.items.length ? '' : 'dis'}" data-act="po-create">${can().po ? 'Create Purchase Order' : 'Send Request to Office'}</button>`,
       fh: 112,
       after() {
         $('#pnotes').oninput = e => { poDraft.notes = e.target.value; };
@@ -1779,18 +1779,18 @@
       case 'po-toggle': {
         const it = poDraft.items.find(i => i.pid === d.p), pr = prod(d.p);
         if (it) poDraft.items.splice(poDraft.items.indexOf(it), 1);
-        else { poDraft.items.push({ pid: d.p, qty: 1, cost: pr.cost, src: (j.products || []).some(x => x.pid === d.p) ? 'job' : 'new' }); if (!poDraft.vendor) poDraft.vendor = pr.vendor; }
+        else poDraft.items.push({ pid: d.p, qty: 1, cost: pr.cost, src: (j.products || []).some(x => x.pid === d.p) ? 'job' : 'new' });
         renderPO(); break;
       }
       case 'po-qty': { const it = poDraft.items.find(i => i.pid === d.p); if (it) { it.qty += +d.d; if (it.qty < 1) poDraft.items.splice(poDraft.items.indexOf(it), 1); } if (!poDraft.items.length) poDraft.vendor = null; renderPO(); break; }
       case 'po-remove': poDraft.items = poDraft.items.filter(i => i.pid !== d.p); if (!poDraft.items.length) poDraft.vendor = null; renderPO(); break;
-      case 'po-more': goPO('needs'); break;
-      case 'po-create': if (!poDraft.items.length) toast('Add at least one product'); else submitPO(); break;
-      case 'vend-open': openSheet('vendor'); break;
+      case 'po-more': if (poDraft.vendor) goPO('needs'); else { vendorThen = true; openSheet('vendor'); } break;
+      case 'po-create': if (!poDraft.vendor) toast('Choose a vendor first'); else if (!poDraft.items.length) toast('Add at least one product'); else submitPO(); break;
+      case 'vend-open': vendorThen = false; openSheet('vendor'); break;
       case 'vend-pick': {
         poDraft.vendor = d.v; const gone = poDraft.items.filter(i => prod(i.pid).vendor !== d.v).length;
         poDraft.items = poDraft.items.filter(i => prod(i.pid).vendor === d.v);
-        closeSheet(); renderPO(); if (gone) toast(`Removed ${gone} product${gone > 1 ? 's' : ''} from other vendors`); break;
+        closeSheet(); renderPO(); if (gone) toast(`Removed ${gone} product${gone > 1 ? 's' : ''} from other vendors`); if (vendorThen) { vendorThen = false; goPO('needs'); } break;
       }
       case 'po-send': { const q = POS(j).find(x => x.id === d.id); q.st = 'sent'; log(j, `${q.num} sent to ${vname(q.vendor)}`); advanceClock(5); toast(`${q.num} sent to ${vname(q.vendor)}`); refreshAll(); break; }
       case 'po-del': {
@@ -1824,8 +1824,8 @@
   /* ---------- review panel copy for the new screens ---------- */
   const EV_PO = 'Productboard: field PO and parts access is a steady ask all year (97 of 314 tracked citations in 2026). Gong: the office wants to keep ordering authority, with technicians flagging “waiting on parts” on the job.';
   Object.assign(P, {
-    'po-needs': ['Add Products', ['Search the catalog by name or SKU, or scan a barcode. Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'The first product sets the PO\'s vendor. After that only that vendor\'s products are listed; change the vendor to see others.', 'Products only, from the catalog. Services can only be added on estimates and invoices.'], EV_PO],
-    'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Vendor is required and comes from the product. Changing it removes products from other vendors. One PO, one vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
+    'po-needs': ['Add Products', ['Search the catalog by name or SKU, or scan a barcode. Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'Pick the vendor first. This list then shows only that vendor\'s products, and you can add one or more.', 'Products only, from the catalog. Services can only be added on estimates and invoices.'], EV_PO],
+    'po-form': ['New PO / PO Request', ['The web PO form, cut down for the phone. Kept: vendor, PO number (automatic), date, reference / memo, the item list (product, quantity, unit cost, line total), vendor message and the item subtotal.', 'Left out: PO and receive status, ship-to, shipping method and address, payment terms, sent-by and sent-on, discount, sales tax and freight. Most are set after the PO exists; the rest can be added later.', 'Unit cost starts from the catalog\'s internal cost and can be edited. Prices and totals appear only for users allowed to see cost.', 'Pick the vendor first (required), then add that vendor\'s products. One PO, one vendor; changing the vendor removes products from the old one. Starting from an invoice product line prefills the vendor.', 'A technician who needs approval sees a request instead: no PO number yet, no costs.', 'The form is the summary: there is no separate review screen.'], EV_PO],
     vendor: ['Vendor', ['Pick the PO\'s vendor from the company list. It is required, and each PO is for one vendor.', 'Choosing a vendor removes any products on the PO that belong to a different one, and the catalog then lists only that vendor\'s products.'], EV_PO],
     'po-invoice': ['Invoice', ['The invoice starts with the estimate\'s products, and users can add more. Each product line shows its vendor and stock, with a Create PO button.', 'Tapping it starts a PO for that product, in that product\'s vendor. A job with products from two vendors therefore gets two POs.', 'Once a product is on a PO, its line shows the PO instead of the button. Services never get a button.', 'Totals and prices are shown only with invoice permissions; others see product names and quantities.'], EV_PO],
     'po-detail': ['Purchase Orders', ['One place to see where the parts are, who owns the next step and what happens next. A job can have several POs; the tracker follows the one furthest behind, and the job is ready to schedule once all are received.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
