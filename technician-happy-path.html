@@ -456,6 +456,8 @@
   .dm button.on { background:var(--seg-on); font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.15); }
   .adv { width:100%; background:var(--accent); color:#fff; border-radius:10px; padding:10px; text-align:center; font-weight:600; font-size:13px; margin:2px 0 8px; }
   .adv:disabled { background:var(--seg-bg); color:var(--text3); cursor:default; }
+  .rdot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; }
+  .r-r { background:var(--red); } .r-o { background:var(--orange); } .r-g { background:var(--green); }
 </style>
 </head>
 <body class="hide-panel">
@@ -617,7 +619,7 @@
     jobs[2].notes.tech.push({ t: 'Gas shutoff is behind the garage freezer, so move it before you start. Dog is friendly but loud; customer will crate him if you call ahead. Old tank is 80 lb, bring the dolly.', by: 'Tech note · Priya N. · Aug 14' });
     jobs[3].notes.tech.push({ t: 'Back delivery entrance code is 2290. Ask for Marcus at the dish station. Kitchen is slammed 11:30 to 1:30, so keep door openings short and check the gasket before pulling the evaporator cover.', by: 'Tech note · Daniel O. · Oct 2' });
     jobs[1].products = [{ pid: 'fan14', qty: 1 }, { pid: 'cont40', qty: 1 }];
-    closePO(true); poDraft = null; compDraft = ''; afterSheet = null; poSeq = 1042; poId = 1;
+    closePO(true); poDraft = null; compDraft = ''; afterSheet = null; poSeq = 1042; poId = 1; ioSeq = 2207; CATALOG.forEach((p, i) => { p.truck = STOCK0[i][0]; p.wh = STOCK0[i][1]; });
     resetNotif(); closeInbox(); drawerOpen(false); hideBanner();
     renderList(); closeJob(true); closeSheet(); setTab('home'); renderAll();
   }
@@ -1396,6 +1398,7 @@
     { id: 'wire', name: 'Thermostat Wire 18/5, 50 ft', sku: 'WIR-185-50', price: 29.00, cost: 13.10, truck: 3, wh: 9 },
     { id: 'filt', name: 'Pleated Filter 16x25x1', sku: 'FLT-162501', price: 9.50, cost: 3.60, truck: 12, wh: 40 }
   ];
+  const STOCK0 = CATALOG.map(p => [p.truck, p.wh]);
   const VENDORS = [
     { id: 'pwr', name: 'PowerProducts', terms: 'NET 30', pref: true },
     { id: 'fer', name: 'Ferguson Supply', terms: 'NET 30' },
@@ -1409,7 +1412,7 @@
   const stockWhere = p => stock(p) ? `Truck ${p.truck} · Warehouse ${p.wh}` : 'None on truck or in warehouse';
 
   /* ---------- parts state, per job ---------- */
-  let poSeq = 1042, poId = 1;
+  let poSeq = 1042, poId = 1, ioSeq = 2207;
   const jp = j => j.jp || (j.jp = { pos: [], waitAt: '', used: false, scheduled: false, visit: '', visitStart: 0 });
   const POS = j => jp(j).pos;
   const nextNum = () => 'PO-' + poSeq;
@@ -1592,7 +1595,7 @@
       <div class="pcard">
         <div class="kv"><span>Created</span><b>${q.createdAt}</b></div>
         <div class="kv"><span>Items</span><b>${ntot(q)} · ${nrecv(q)} received · ${ntot(q) - nrecv(q)} left</b></div>
-        ${q.io ? `<div class="kv"><span>Inventory order</span><b>${q.io}</b></div>` : ''}
+        <div class="kv"><span>Received</span><b><i class="rdot r-${q.st === 'received' ? 'g' : q.st === 'partial' ? 'o' : 'r'}"></i>${q.st === 'received' ? 'In full' : q.st === 'partial' ? 'Partially' : 'Not received'}</b></div>${q.ios.length ? `<div class="kv"><span>Inventory order${q.ios.length > 1 ? 's' : ''}</span><b>${q.ios.map(x => x.no + ' · ' + x.wh).join('<br>')}</b></div>` : ''}
         ${can().cost && q.num ? `<div class="kv"><span>Estimated total</span><b>${money(poTotal(q))}</b></div>` : ''}
         ${items}
         ${q.notes.trim() ? `<div class="kv" style="display:block;line-height:1.4"><span style="display:block;font-size:12px">Notes</span>${esc(q.notes)}</div>` : ''}</div>
@@ -1618,7 +1621,7 @@
 
   function submitPO() {
     const j = J(), d = poDraft;
-    const q = { id: 'q' + (poId++), num: null, st: 'awaiting', vendor: d.vendor, notes: d.notes, createdAt: fmt(simMin), io: null, byOffice: false, items: d.items.map(i => ({ pid: i.pid, qty: i.qty, rcv: 0, src: i.src })) };
+    const q = { id: 'q' + (poId++), num: null, st: 'awaiting', vendor: d.vendor, notes: d.notes, createdAt: fmt(simMin), ios: [], byOffice: false, items: d.items.map(i => ({ pid: i.pid, qty: i.qty, rcv: 0, src: i.src })) };
     if (d.addJob) d.items.filter(i => i.src === 'new').forEach(i => { j.products = j.products || []; if (!j.products.some(x => x.pid === i.pid)) j.products.push({ pid: i.pid, qty: i.qty, pending: true }); });
     if (can().po) { q.st = 'approved'; q.num = nextNum(); poSeq++; log(j, `Purchase order ${q.num} created · ${vname(q.vendor)}`); }
     else log(j, 'PO request sent to the office for approval');
@@ -1709,17 +1712,19 @@
   function backToComplete() { const go = afterSheet === 'complete'; afterSheet = null; closeSheet(); if (go) setTimeout(() => openSheet('complete'), 380); }
 
   /* ---------- demo: persona + things that happen outside the app ---------- */
+  // Receiving a PO creates an Inventory Order and adds the quantities to a warehouse's stock.
+  function receive(q, items) { items.forEach(i => { const d = i.qty - i.rcv; if (d > 0) { i.rcv = i.qty; prod(i.pid).wh += d; } }); q.ios.push({ no: 'IO-' + (ioSeq++), wh: 'Main warehouse' }); }
   function demoStep() {
     const j = jobs[1], P = POS(j), K = jp(j);
     const bump = (m, text) => { advanceClock(m); log(j, text); };
     if (!P.length) return null;
     const awaiting = P.filter(q => q.st === 'awaiting'), approved = P.filter(q => q.st === 'approved');
     if (awaiting.length) return { l: 'Office approves your request', f() { awaiting.forEach(q => { q.st = 'approved'; q.byOffice = true; q.num = nextNum(); poSeq++; q.vendor = q.vendor || 'pwr'; }); bump(10, 'Request approved · ' + awaiting.map(q => q.num).join(', ') + ' created by the office'); } };
-    if (approved.length) return { l: approved.length > 1 ? 'POs sent to the vendors' : 'PO sent to the vendor', f() { approved.forEach(q => { q.st = 'sent'; q.io = 'IO-' + (2207 + P.indexOf(q)); }); bump(5, approved.map(q => `${q.num} sent to ${vname(q.vendor)}`).join(' · ')); } };
+    if (approved.length) return { l: approved.length > 1 ? 'POs sent to the vendors' : 'PO sent to the vendor', f() { approved.forEach(q => { q.st = 'sent'; }); bump(5, approved.map(q => `${q.num} sent to ${vname(q.vendor)}`).join(' · ')); } };
     const open = P.find(q => q.st !== 'received');
     if (open) {
-      if (open.st === 'sent' && open.items.length > 1) return { l: `Vendor ships part 1 of ${open.items.length} (${open.num})`, f() { open.items[0].rcv = open.items[0].qty; open.st = 'partial'; bump(45, `${open.num}: 1 of ${open.items.length} parts received`); } };
-      return { l: open.st === 'partial' ? 'Remaining part received' : P.length > 1 ? `${open.num} received from ${vname(open.vendor)}` : 'Part received at the shop', f() { open.items.forEach(i => i.rcv = i.qty); open.st = 'received'; bump(40, `${open.num} received`); } };
+      if (open.st === 'sent' && open.items.length > 1) return { l: `Vendor ships part 1 of ${open.items.length} (${open.num})`, f() { receive(open, [open.items[0]]); open.st = 'partial'; bump(45, `${open.num}: 1 of ${open.items.length} parts received`); } };
+      return { l: open.st === 'partial' ? 'Remaining part received' : P.length > 1 ? `${open.num} received from ${vname(open.vendor)}` : 'Part received at the shop', f() { receive(open, open.items); open.st = 'received'; bump(40, `${open.num} received`); } };
     }
     if (!K.scheduled) return { l: 'Dispatch schedules the return visit', f() { const s = Math.ceil((simMin + 30) / 5) * 5; K.visitStart = s; K.visit = fmt(s); K.scheduled = true; bump(5, 'All POs received · return visit scheduled for ' + fmt(s)); } };
     return j.ret ? null : { l: 'Go to the return visit', f() {
@@ -1763,7 +1768,7 @@
       case 'po-add-all': { const ordered = new Set(allItems(POS(j)).map(i => i.pid)); (j.products || []).filter(x => !poDraft.items.some(i => i.pid === x.pid) && !ordered.has(x.pid)).forEach(x => poDraft.items.push({ pid: x.pid, qty: x.qty, src: 'job' })); renderPO(); break; }
       case 'po-review': if (!poDraft.items.length) toast('Add at least one product'); else if (can().po && !poDraft.vendor) toast('Choose a vendor'); else goPO('review'); break;
       case 'po-confirm': submitPO(); break;
-      case 'po-send': { const q = POS(j).find(x => x.id === d.id); q.st = 'sent'; q.io = 'IO-' + (2207 + POS(j).indexOf(q)); log(j, `${q.num} sent to ${vname(q.vendor)}`); advanceClock(5); toast(`${q.num} sent to ${vname(q.vendor)}`); refreshAll(); break; }
+      case 'po-send': { const q = POS(j).find(x => x.id === d.id); q.st = 'sent'; log(j, `${q.num} sent to ${vname(q.vendor)}`); advanceClock(5); toast(`${q.num} sent to ${vname(q.vendor)}`); refreshAll(); break; }
       case 'po-del': {
         const P = POS(j), q = P.find(x => x.id === d.id); P.splice(P.indexOf(q), 1);
         const keep = new Set(allItems(P).map(i => i.pid)); j.products = (j.products || []).filter(x => !(x.pending && !keep.has(x.pid)));
@@ -1782,7 +1787,7 @@
       case 'used-qty': usedDraft[d.p] = Math.max(0, (usedDraft[d.p] || 0) + +d.d); renderSheet(); break;
       case 'used-confirm': {
         const p = pt(j); j.products = j.products || [];
-        p.items.forEach(i => { const n = usedDraft[i.pid] || 0, e = j.products.find(x => x.pid === i.pid); if (n > 0) { if (e) { e.qty = n; delete e.pending; } else j.products.push({ pid: i.pid, qty: n }); } else if (e && e.pending) j.products.splice(j.products.indexOf(e), 1); });
+        p.items.forEach(i => { const n = usedDraft[i.pid] || 0; if (!jp(j).used && n > 0) { const pr = prod(i.pid), w = Math.min(pr.wh, n); pr.wh -= w; pr.truck = Math.max(0, pr.truck - (n - w)); } const e = j.products.find(x => x.pid === i.pid); if (n > 0) { if (e) { e.qty = n; delete e.pending; } else j.products.push({ pid: i.pid, qty: n }); } else if (e && e.pending) j.products.splice(j.products.indexOf(e), 1); });
         jp(j).used = true; log(j, 'Parts used recorded'); toast('Products recorded on the invoice'); backToComplete(); refreshAll(); break;
       }
       case 'sign': if (sheetKind === 'complete') { afterSheet = 'complete'; closeSheet(); setTimeout(() => openSheet('sign'), 380); } break;
@@ -1796,11 +1801,11 @@
   /* ---------- review panel copy for the new screens ---------- */
   const EV_PO = 'Productboard: field PO and parts access is a steady ask all year (97 of 314 tracked citations in 2026). Gong: the office wants to keep ordering authority, with technicians flagging “waiting on parts” on the job.';
   Object.assign(P, {
-    'po-needs': ['Add Products', ['A secondary step: search the catalog when a product is not on the invoice yet. Search by name or SKU, or scan a barcode.', 'Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'Products only. Services can only be added on estimates and invoices, so they never appear here.'], EV_PO],
+    'po-needs': ['Add Products', ['A secondary step: search the catalog when a product is not on the invoice yet. Search by name or SKU, or scan a barcode.', 'Every product shows what is in stock, split into truck and warehouse. Today the catalog shows no availability.', 'Products only. Services can only be added on estimates and invoices, so they never appear here. A PO can only hold products that are in the catalog, as on the web.'], EV_PO],
     'po-form': ['New PO / PO Request', ['The PO button sits on the job, never on estimates. A PO makes sense once the estimate is won and converted to a job.', 'The job and customer are prefilled. Only the fields a technician needs are shown; payment terms, shipping and the other web fields are left out.', 'The invoice starts with the estimate\'s products, so they are offered first, with stock, one tap each or Add all. Quantities on the PO never change the invoice.', 'A product that is not on the invoice can come from the catalog. Adding it to the invoice is a separate, optional switch that is off by default, because it changes what the customer pays.', 'One vendor per PO, picked from the company\'s vendor list (required). A job usually ends up with several POs, one per vendor. Invoice products already on a PO are not offered again.', 'Prices and totals appear only for users allowed to see cost.', 'A technician who needs approval sees a PO Request instead: no PO number yet, vendor optional, no costs.'], EV_PO],
     'po-vendor': ['Vendor', ['Required for a PO. Optional preference on a request. The web form\'s vendor and payment terms come through.'], EV_PO],
     'po-review': ['Review', ['A compact summary before saving: number, vendor, job, products, costs where permitted and notes.', 'Saving confirms the PO and opens it in the job. A request goes to the office as Awaiting approval.'], EV_PO],
-    'po-detail': ['Purchase Orders', ['One place to see where the parts are, who owns the next step and what happens next. A job can have several POs; the tracker follows the one furthest behind, and the job is ready to schedule once all are received.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. The inventory order appears once the PO is received into stock.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
+    'po-detail': ['Purchase Orders', ['One place to see where the parts are, who owns the next step and what happens next. A job can have several POs; the tracker follows the one furthest behind, and the job is ready to schedule once all are received.', 'PO status uses Awaiting approval, Approved, Sent to vendor, Partially received, Received and Closed, with received and outstanding quantities and the inventory order once one exists.', 'Each PO has its own section and actions, matching the web: print, email, share and delete for purchasers; view and cancel for requests. A PO shows red, orange or green as it is not, partly or fully received. Receiving creates an Inventory Order and adds the quantities to a warehouse, which is why a part flips from Out of stock to In stock once it arrives.', 'End Visit · Waiting for Parts closes this visit without implying the job is done.', 'Use the demo controls lower in this panel to play what the office, vendor and dispatch do.'], EV_PO],
     waiting: ['Waiting on Parts', ['Ends the visit, not the job. The sheet spells out the difference: this visit is complete, the overall job is not.', 'It restates the part, the PO or request status, the next owner and the expected next step.', 'The job stays on My Work as active work, with the parts state under it. Home moves on to your next job.', 'The status label is customer-defined; the prototype uses “Waiting on Parts”.'], 'Gong: techs update the status to “waiting on parts”, which notifies the office. Churn: techs unwilling to implement is the top Field Worker App cancel reason (24).'],
     used: ['Parts Used', ['Shown on the return visit. Defaults to what was received; adjust what was actually installed.', 'Saving sets the quantities on the invoice and updates its total.'], 'Parts recorded on the job feed the invoice and cost.'],
     sign: ['Customer signature', ['The one required item in the demo checklist. It mirrors the web status rule “Post-work signature is present”.'], 'Web: Edit Job status > Only allow to select status if…'],
