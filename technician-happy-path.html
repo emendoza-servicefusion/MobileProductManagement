@@ -290,9 +290,21 @@
   .nrow.unread .nt b { font-weight:700; }
   .nt span { color:var(--text2); font-size:12.5px; flex:none; margin-top:2px; }
   .nb p { margin:2px 0 0; font-size:14px; color:var(--text2); line-height:1.3; }
-  .nrow .dot { position:absolute; right:12px; top:40px; width:9px; height:9px; border-radius:50%; background:var(--accent); }
+  .nrow .dotbtn { position:absolute; right:0; top:26px; width:40px; height:44px; display:grid; place-items:center; }
+  .nrow .dotbtn:active { background:color-mix(in srgb, var(--accent) 14%, transparent); border-radius:12px 0 0 12px; }
+  .nrow .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); }
+  .nrow.unread .nb { padding-right:24px; }
   .nact { margin-top:8px; background:var(--accent); color:#fff; font-weight:600; font-size:13.5px; padding:6px 14px; border-radius:16px; }
   .nres { margin-top:7px; display:flex; align-items:center; gap:5px; font-size:13px; color:var(--green); font-weight:500; }
+  .bellbtn .bdg { position:absolute; top:1px; right:-1px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:var(--red); color:#fff; font-size:11px; font-weight:700; line-height:17px; text-align:center; box-shadow:0 0 0 2px var(--bar); pointer-events:none; }
+  /* job-change notifications: Was → Now, and the "no longer on your schedule" state */
+  .ndiff { margin-top:7px; border-radius:10px; background:var(--seg-bg); padding:7px 10px; font-size:13.5px; line-height:1.35; }
+  .ndiff div { display:flex; gap:8px; }
+  .ndiff em { font-style:normal; width:34px; flex:none; font-size:11.5px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--text2); padding-top:1px; }
+  .ndiff s { color:var(--text2); }
+  .ndiff .now b { color:var(--text); font-weight:700; }
+  .ndiff .lbl { color:var(--text2); font-size:12px; margin-bottom:2px; display:block; }
+  #panel .seg3 { margin-bottom:8px; }
   .foot { text-align:center; color:var(--text2); font-size:13px; line-height:1.45; padding:22px 30px; }
   .zero { text-align:center; color:var(--text2); padding:70px 40px 30px; }
   .zero .zi { width:64px; height:64px; border-radius:50%; background:var(--seg-bg); display:grid; place-items:center; margin:0 auto 14px; }
@@ -355,10 +367,18 @@
   #panel h3 { margin:0 0 10px; font-size:17px; }
   #panel ul { margin:0 0 14px; padding-left:18px; } #panel li { margin-bottom:6px; }
   #panel .ev { color:var(--text2); font-size:12px; }
+  #panel .resetbar { position:sticky; top:-20px; z-index:2; margin:-20px -20px 12px; padding:12px 20px 8px; background:var(--panel); }
+  #panel .resetbar button { width:100%; background:var(--seg-bg); border-radius:10px; padding:8px; text-align:center; font-weight:600; font-size:13px; }
   #panel .ctl { display:flex; gap:8px; margin-top:6px; }
   #panel .ctl button { flex:1; background:var(--seg-bg); border-radius:10px; padding:8px; text-align:center; font-weight:600; font-size:13px; }
   @media (max-width:820px) { #panel { display:none; } }
   body.hide-panel #panel { display:none; }
+  #panel .nbody.clamp { max-height:100px; overflow:hidden; -webkit-mask-image:linear-gradient(#000 62%, transparent); mask-image:linear-gradient(#000 62%, transparent); }
+  #panel .nbody ul { margin-bottom:6px; }
+  #panel .nmore { color:var(--accent); font-size:13px; font-weight:600; margin:0 0 14px; padding:2px 0; }
+  #panel .epicref { margin:-6px 0 12px; font-size:12px; color:var(--text2); }
+  #panel .epicref a { color:var(--accent); font-weight:600; text-decoration:none; }
+  #panel .epicref a:hover { text-decoration:underline; }
   #panelToggle { position:fixed; top:12px; right:12px; z-index:500; background:var(--panel); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:16px; opacity:.55; box-shadow:0 2px 8px rgba(0,0,0,.15); }
   #panelToggle:hover { opacity:1; }
   @media (max-width:820px) { #panelToggle { display:none; } }
@@ -461,7 +481,7 @@
   .r-r { background:var(--red); } .r-o { background:var(--orange); } .r-g { background:var(--green); }
 </style>
 </head>
-<body class="hide-panel">
+<body>
 <div id="stage">
 <div class="phone" id="phone">
   <div class="island"></div>
@@ -545,7 +565,7 @@
 </div>
 
 <aside id="panel"></aside>
-<button id="panelToggle" data-act="togglePanel" aria-label="Show or hide prototype notes and controls">Show notes</button>
+<button id="panelToggle" data-act="togglePanel" aria-label="Show or hide prototype notes and controls">Hide notes</button>
 
 <script>
 (() => {
@@ -613,6 +633,14 @@
     jobs.push(
       { id:4, type:'estimate', name:'Elena & Marcus Okafor', addr:'3318 Brookside Ln, Dublin, OH 43017', as:'Jordan Reyes', num:'1023440812', start:11*60+30, end:12*60+15, status:'Estimate Provided', phone:'(614) 555-0190', tasks:[], notes:{tech:[],job:[]}, logs:[] }
     );
+    // A site visit is a child record of a job: its own slot, arrival window and technician notes.
+    jobs.push({ id:5, type:'job', sv:{ n:2, job:'1098871462' }, name:'Whitfield Property Group', addr:'780 Bethel Rd, Columbus, OH 43214', as:'Jordan Reyes', num:'1098871462', start:10*60+45, end:11*60+30, status:'Scheduled', phone:'(614) 555-0127', email:'ops@whitfieldproperty.example.com',
+      desc:'Visit 2: finish the RTU start-up now that the curb adapter is in, then balance airflow in the suites.', tasks:['Set unit on curb','Start-up and check rotation','Balance airflow'].map(task), notes:{ tech:[], job:[] }, logs:[], photos:0, stamps:{} });
+    // Work that has already left the schedule, so older inbox rows still open the real job.
+    jobs.push({ id:6, type:'job', unassigned:true, name:'Hargrove Apartments', addr:'55 Hargrove Ct, Columbus, OH 43215', as:'Monica Margam', num:'1092771340', start:13*60, end:14*60, status:'Scheduled', phone:'(614) 555-0133', email:'office@hargroveapts.example.com',
+      desc:'Replace the thermostat in unit 4B.', tasks:['Swap thermostat'].map(task), notes:{ tech:[], job:[] }, logs:[], photos:0, stamps:{} },
+      { id:7, type:'job', cancelled:true, sv:{ n:3, job:'1090552281' }, date:'Tue, Oct 6', name:'Brightwater Dental', addr:'4020 Sawmill Rd, Columbus, OH 43220', as:'Jordan Reyes', num:'1090552281', start:14*60, end:15*60, status:'Cancelled', phone:'(614) 555-0188', email:'front@brightwaterdental.example.com',
+      desc:'Visit 3: final airflow check.', tasks:['Check airflow'].map(task), notes:{ tech:[], job:[] }, logs:[], photos:0, stamps:{} });
     jobs[0].email = 'priya.natarajan@example.com'; jobs[1].email = 'dana.whitfield@greenfielddental.com'; jobs[2].email = 'sandra.k@example.com';
     jobs[3].email = 'marcus.bell@olentangybistro.com'; jobs[4].email = 'okafor.family@example.com';
     // Tech notes surface on Home's Next Up card (latest one shown)
@@ -628,7 +656,9 @@
   const advanceClock = n => { simMin += n; updateClock(); };
 
   /* ---------- My Work ---------- */
-  const isActive = j => !['Completed', 'Partially Completed', 'Ready for Office Review'].includes(j.status) && !j.cancelled;
+  // Cancelled, unassigned and moved-to-another-day work leaves today's schedule (Home, My Work, counts).
+  const hidden = j => j.cancelled || j.unassigned || j.moved || j.deleted;
+  const isActive = j => !['Completed', 'Partially Completed', 'Ready for Office Review'].includes(j.status) && !hidden(j);
 
   /* Object-type iconography: Job / Estimate / Task, icon + colour vary by that type's status.
      Confirmed from the app: Job Scheduled, Job Dispatched, Estimate Provided, Estimate Accepted,
@@ -668,7 +698,7 @@
   const typeTitle = o => o.type === 'task' ? (o.status === 'Completed' ? 'Completed Task' : 'Incomplete Task') : o.name;
 
   function renderList() {
-    const active = jobs.filter(isActive).sort((a, b) => a.start - b.start), done = jobs.filter(j => !isActive(j) && !j.cancelled);
+    const active = jobs.filter(isActive).sort((a, b) => a.start - b.start), done = jobs.filter(j => !isActive(j) && !hidden(j));
     const nextJob = active.find(j => j.type === 'job' && j.status !== 'Waiting on Parts'), nextId = nextJob ? nextJob.id : -1;
     let h = '';
     active.forEach(j => {
@@ -705,7 +735,7 @@
     const sc = (key, icon, label, badge, bc) => `<button class="sc" data-act="${key}"><div class="tile">${icon}${badge!==''?`<span class="badge ${bc||''}">${badge}</span>`:''}</div>${label}</button>`;
     $('#job').innerHTML = `
       <div class="jnav">
-        <div class="row1"><button data-act="back" style="color:var(--accent);padding:6px 8px">${I.back}</button><span>Job #${j.num}</span><button data-act="toast" data-msg="Edit Job" style="color:var(--accent);padding:6px 8px">${I.edit}</button></div>
+        <div class="row1"><button data-act="back" style="color:var(--accent);padding:6px 8px">${I.back}</button><span>${refOf(j)}</span><button data-act="toast" data-msg="Edit Job" style="color:var(--accent);padding:6px 8px">${I.edit}</button></div>
         <h2>${j.name}</h2>
         <div class="jtabs"><button class="on">Details</button><button data-act="toast" data-msg="Customer Info">Customer Info</button><button data-act="toast" data-msg="Photos">Photos</button><button data-act="toast" data-msg="Sign">Sign</button></div>
       </div>
@@ -717,7 +747,7 @@
 
         ${retCard(j)}
         <div class="card">
-          <div class="irow">${I.cal}<div class="main">Fri, Oct 09 · ${fmt(j.start)} – ${fmt(j.end)}<small>Duration ${dur(j)}</small></div></div>
+          <div class="irow">${I.cal}<div class="main">${j.date || 'Fri, Oct 09'} · ${fmt(j.start)} – ${fmt(j.end)}<small>${j.aw ? `Arrival window ${rng(j.aw.ws, j.aw.we)} · ` : ''}Duration ${dur(j)}</small></div></div>
           <div class="irow">${I.pin}<div class="main">${j.addr}<small>Tap to open in maps</small></div><button class="circ" data-act="toast" data-msg="Opening driving directions…">${I.nav}</button></div>
           <div class="irow">${I.user}<div class="main">${j.contact||j.name}</div></div>
         </div>
@@ -901,6 +931,8 @@
     exit: '<path d="M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5M14 8l4 4-4 4M18 12H9"/>',
     cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     userplus: '<circle cx="10" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 8-6s8 2 8 6M19 8v6M16 11h6"/>',
+    userminus: '<circle cx="10" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 8-6s8 2 8 6M16 11h6"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     xcircle: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
     chev: '<path d="M9 5l7 7-7 7"/>',
@@ -925,29 +957,48 @@
     arrive:    { ico: 'pin',      c: '#34c759' },
     window:    { ico: 'alarm',    c: '#ff9f0a' },
     depart:    { ico: 'exit',     c: '#ff453a' },
-    changed:   { ico: 'cal',      c: '#4a90e2' },
-    assigned:  { ico: 'userplus', c: '#4a90e2' },
-    cancelled: { ico: 'xcircle',  c: '#8e8e93' }
+    assigned:   { ico: 'userplus',  c: '#34c759' },
+    unassigned: { ico: 'userminus', c: '#ff9f0a' },
+    date:       { ico: 'cal',       c: '#4a90e2' },
+    time:       { ico: 'clock',     c: '#4a90e2' },
+    cancelled:  { ico: 'xcircle',   c: '#ff453a' },
+    deleted:    { ico: 'trash',     c: '#8e8e93' }
   };
+  /* Job-change notifications work the same for jobs, estimates and site visits. */
+  const kindOf = j => j.type === 'estimate' ? 'estimate' : j.sv ? 'visit' : 'job';
+  const NOUN = { job: 'job', estimate: 'estimate', visit: 'site visit' };
+  const cap = t => t[0].toUpperCase() + t.slice(1);
+  const refOf = j => j.type === 'estimate' ? `Estimate #${j.num}` : j.sv ? `Visit ${j.sv.n} · Job #${j.sv.job}` : `Job #${j.num}`;
+  const dayOf = j => j.date || 'Fri, Oct 9';
+  const whenOf = j => `${dayOf(j)} · ${rng(j.start, j.end)}`;
   const ACT = { onsite: 'Mark On Site', complete: 'Mark Complete' };
 
   /* ---------- notification state ---------- */
   const freshS = () => ({
     clockedIn: false, clockInAt: 0, push: true, loc: 'always', unreadOnly: false, assigned: false, expanded: {},
-    prefs: { morning: true, window: true, arrive: true, depart: true, assigned: true, changed: true, cancelled: true },
+    prefs: { morning: true, window: true, arrive: true, depart: true, assigned: true, unassigned: true, cancelled: true, date: true, time: true },
+    dk: 'job', seq: { job: 0, estimate: 0, visit: 0 },
     notifs: [
-      { id: 1, type: 'morning', title: 'Good morning, Eleza — 4 jobs today', body: 'First up: Priya Natarajan at 8:00 AM. Then Greenfield Family Dental at 9:30 AM.', job: 1, day: 'Today', time: '7:30 AM', unread: true },
+      { id: 6, type: 'time', title: 'Job time changed', body: 'Olentangy Bistro · Job #1099231105', job: 3, day: 'Today', time: '8:41 AM', unread: true, diff: { label: 'Time', from: 'Fri, Oct 9 · 2:30 – 3:30 PM', to: 'Fri, Oct 9 · 3:30 – 4:30 PM' } },
+      { id: 1, type: 'morning', title: 'Good morning, Eleza — 5 jobs today', body: 'First up: Priya Natarajan at 8:00 AM. Then Greenfield Family Dental at 9:30 AM.', job: 1, day: 'Today', time: '7:30 AM', unread: true },
+      { id: 7, type: 'unassigned', title: 'Job removed from your schedule', body: `You're no longer assigned to Hargrove Apartments · Job #1092771340.`, day: 'Yesterday', time: '4:20 PM', unread: false, job: 6 },
+      { id: 10, type: 'deleted', title: 'Job deleted', body: 'Marlow Orthodontics · Job #1091884406 was deleted. It was Fri, Oct 9 · 12:00 – 1:00 PM.', day: 'Yesterday', time: '3:10 PM', unread: false },
+      { id: 8, type: 'assigned', title: 'New estimate assigned', body: 'Elena & Marcus Okafor · Estimate #1023440812 · Fri, Oct 9 · 11:30 AM – 12:15 PM', job: 4, day: 'Yesterday', time: '2:05 PM', unread: false },
       { id: 2, type: 'depart', title: 'Leaving Daniel Okafor?', body: `You haven't marked this visit Complete.`, day: 'Yesterday', time: '12:12 PM', unread: false, action: 'complete', resolved: 'Completed at 12:14 PM' },
       { id: 3, type: 'arrive', title: `You've arrived at Daniel Okafor`, body: '88 Brookside Ln · Job #1094418977', day: 'Yesterday', time: '10:58 AM', unread: false, action: 'onsite', resolved: 'Marked On Site at 11:01 AM' },
       { id: 4, type: 'morning', title: 'Good morning, Eleza — 2 jobs today', body: 'First up: Daniel Okafor at 11:00 AM.', day: 'Yesterday', time: '7:30 AM', unread: false },
+      { id: 9, type: 'cancelled', title: 'Site visit cancelled', body: 'Brightwater Dental · Visit 3 · Job #1090552281 was cancelled.', day: 'Earlier this week', time: 'Tue', unread: false, job: 7 },
       { id: 5, type: 'window', title: 'Arrival window closing', body: 'Window for Marcus Bellweather closes in 15 min.', day: 'Earlier this week', time: 'Mon', unread: false }
     ]
   });
   let S = freshS(), nid = 100, tab = 'home';
-  function resetNotif() { S = freshS(); nid = 100; }
+  function resetNotif() { S = freshS(); nid = 100; savePrefs(); }
+  // Preferences persist across reloads; Reset restores the defaults (everything on).
+  function savePrefs() { try { localStorage.setItem('sf-nprefs', JSON.stringify(S.prefs)); } catch (e) {} }
+  function loadPrefs() { try { Object.assign(S.prefs, JSON.parse(localStorage.getItem('sf-nprefs') || '{}')); } catch (e) {} }
 
   /* ---------- derived job state ---------- */
-  const win = j => ({ ws: j.start, we: j.start + 60 });   // arrival window: first hour of the scheduled slot (placeholder for the real arrival window)
+  const win = j => j.aw || { ws: j.start, we: j.start + 60 };   // arrival window: first hour of the scheduled slot unless dispatch changed it
   const activeJobs = () => jobs.filter(j => j.type === 'job' && isActive(j)).sort((a, b) => a.start - b.start);
   function phase(j) {
     if (!isActive(j)) return 'done';
@@ -998,9 +1049,9 @@
     return `<div class="hcard nu ${p}" data-act="hopen" data-id="${j.id}" role="button">
       <div class="nu-top"><span class="eyebrow">Next up</span><span class="pill p-${pill.c}">${pill.t}</span></div>
       <h4>${j.name}</h4>
-      <div class="tags"><span class="tag">Job #${j.num}</span><button class="tag ctag" data-act="hcontact" data-id="${j.id}" aria-label="Primary contact: ${contactOf(j).name}">${ic('users', 13, 2)}${contactOf(j).name}${ic('chev', 11, 2.6)}</button>${j.changed ? '<span class="tag chg">Rescheduled</span>' : ''}${j.ret ? '<span class="tag chg">Return visit</span>' : ''}</div>
+      <div class="tags"><span class="tag">${refOf(j)}</span><button class="tag ctag" data-act="hcontact" data-id="${j.id}" aria-label="Primary contact: ${contactOf(j).name}">${ic('users', 13, 2)}${contactOf(j).name}${ic('chev', 11, 2.6)}</button>${j.changed ? '<span class="tag chg">Rescheduled</span>' : ''}${j.ret ? '<span class="tag chg">Return visit</span>' : ''}</div>
       <div class="meta">
-        <div>${ic('clock', 18)}<span>${rng(w.ws, w.we)} arrival window${j.changed ? `<s>was ${rng(j.changed.start, j.changed.start + 60)}</s>` : ''}</span></div>
+        <div>${ic('clock', 18)}<span>${rng(w.ws, w.we)} arrival window${j.changed ? `<s>was ${rng(j.changed.ws, j.changed.we)}</s>` : ''}</span></div>
         <div>${ic('pin', 18)}<span>${j.addr.replace(/,\s*[A-Z]{2}\s*\d{5}(-\d{4})?$/, '')}</span></div>
       </div>
       ${j.desc ? nblock(j, "desc", "file", "Description", j.desc) : ""}
@@ -1013,7 +1064,7 @@
   }
   function renderHome() {
     const body = $('#homeBody'); if (!body) return;
-    const all = jobs.filter(j => !j.cancelled), jl = all.filter(j => j.type === 'job'), est = all.filter(j => j.type === 'estimate').length;
+    const all = jobs.filter(j => !hidden(j)), jl = all.filter(j => j.type === 'job'), est = all.filter(j => j.type === 'estimate').length;
     const done = jl.filter(j => !isActive(j)).length, nu = nextUp();
     let h = `<div class="greet"><p>Fri, Oct 9 · ${jl.length} jobs${est ? ` · ${est} estimate` : ""}</p></div>`;
 
@@ -1037,7 +1088,7 @@
       <div class="hcard">${rest.length ? rest.map(j => {
         const p = j.type === 'job' ? phase(j) : '';
         const st = p === 'left' ? '<span class="pill p-red">Left site</span>' : p === 'late' ? '<span class="pill p-red">Late</span>' : p === 'warn' ? '<span class="pill p-amber">Closing</span>'
-          : `<span class="chip s-${cls(j.status)}">${j.type === 'estimate' ? 'Provided' : j.status}</span>`;
+          : `<span class="chip s-${cls(j.status)}">${j.type === 'estimate' ? j.status.replace('Estimate ', '') : j.status}</span>`;
         return `<button class="jrow ${!isActive(j) ? 'dn' : ''}" data-act="hopen" data-id="${j.id}">${objIcon(j, 26)}
           <span class="jn"><b>${typeTitle(j)}</b><small>${rowSub(j)}</small></span>${st}${I.chev}</button>`;
       }).join('') : '<div class="hempty">Nothing else today.</div>'}</div>`;
@@ -1057,14 +1108,21 @@
   function ring() { $$('.bellic').forEach(b => { b.classList.remove('bell-ring'); void b.offsetWidth; b.classList.add('bell-ring'); }); }
 
   /* ---------- inbox ---------- */
+  const jobOf = n => n.job != null ? jobs[n.job] : null;
+  const diffHTML = n => n.diff ? `<div class="ndiff"><div><em>Was</em><s>${n.diff.from}</s></div><div class="now"><em>Now</em><b>${n.diff.to}</b></div></div>` : '';
+  function updateBell() {
+    const un = unreadCount();
+    $$('.bellbtn').forEach(b => { let d = b.querySelector('.bdg'); if (!un) { if (d) d.remove(); return; } if (!d) { d = document.createElement('span'); d.className = 'bdg'; b.appendChild(d); } d.textContent = un > 9 ? '9+' : un; b.setAttribute('aria-label', `Notifications, ${un} unread`); });
+  }
   function renderInbox() {
+    updateBell();
     const list = S.notifs.filter(n => !S.unreadOnly || n.unread), un = unreadCount();
     let h = `<div class="frow"><div class="fseg"><div class="thumb" style="transform:translateX(${S.unreadOnly ? 100 : 0}%)"></div>
       <button class="${S.unreadOnly ? '' : 'on'}" data-act="filter" data-v="all">All</button>
       <button class="${S.unreadOnly ? 'on' : ''}" data-act="filter" data-v="unread">Unread${un ? ` · ${un}` : ''}</button></div>
       <button class="mark" data-act="markall" ${un ? '' : 'disabled'}>Mark all read</button></div>`;
     if (!list.length) {
-      h += `<div class="zero"><div class="zi">${ic('bell', 30)}</div><b>${S.unreadOnly ? `You're all caught up` : 'No notifications yet'}</b>Arrival, departure and schedule alerts will show up here.</div>`;
+      h += `<div class="zero"><div class="zi">${ic('bell', 30)}</div><b>${S.unreadOnly ? `You're all caught up` : 'No notifications yet'}</b>Arrival, departure and schedule changes will show up here.</div>`;
     } else {
       ['Today', 'Yesterday', 'Earlier this week'].forEach(g => {
         const rows = list.filter(n => n.day === g); if (!rows.length) return;
@@ -1072,9 +1130,9 @@
           const T = TYPES[n.type];
           return `<div class="nrow ${n.unread ? 'unread' : ''}" data-act="notif" data-id="${n.id}" role="button">
             <div class="ni" style="--c:${T.c}">${ic(T.ico, 20)}</div>
-            <div class="nb"><div class="nt"><b>${n.title}</b><span>${n.time}</span></div><p>${n.body}</p>
+            <div class="nb"><div class="nt"><b>${n.title}</b><span>${n.time}</span></div><p>${n.body}</p>${diffHTML(n)}
               ${n.resolved ? `<div class="nres">${ic('check', 14, 2.6)} ${n.resolved}</div>` : n.action && n.job != null ? `<button class="nact" data-act="nact" data-id="${n.id}">${ACT[n.action]}</button>` : ''}</div>
-            ${n.unread ? '<i class="dot"></i>' : ''}</div>`;
+            ${n.unread ? `<button class="dotbtn" data-act="nread" data-id="${n.id}" aria-label="Mark as read"><i class="dot"></i></button>` : ''}</div>`;
         }).join('')}</div>`;
       });
     }
@@ -1099,22 +1157,22 @@
         <div class="srow"><span>Arriving at a job<small>When you're within 500 ft of the address.</small></span>${sw('arrive')}</div>
         <div class="srow"><span>Leaving without Complete<small>When you leave a site that isn't marked Complete.</small></span>${sw('depart')}</div>
       </div>
-      <p class="snote">Timing and distance are set by your company admin.</p>
-      <h3>From dispatch <span class="soon">v2</span></h3>
+      <h3>Changes to your work</h3>
       <div class="sgroup">
-        <div class="srow"><span>Job assigned</span>${sw('assigned')}</div>
-        <div class="srow"><span>Schedule changed</span>${sw('changed')}</div>
-        <div class="srow"><span>Job cancelled</span>${sw('cancelled')}</div>
-      </div>`;
+        <div class="srow"><span>Newly assigned appointments<small>Jobs, estimates and site visits added to your schedule.</small></span>${sw('assigned')}</div>
+        <div class="srow"><span>Unassigned appointments<small>When you're taken off an appointment.</small></span>${sw('unassigned')}</div>
+        <div class="srow"><span>Cancellations or deletions<small>For appointments assigned to you.</small></span>${sw('cancelled')}</div>
+        <div class="srow"><span>Date changes<small>For appointments assigned to you.</small></span>${sw('date')}</div>
+        <div class="srow"><span>Time changes<small>Start/end time and arrival time.</small></span>${sw('time')}</div>
+      </div>
+      <p class="snote">Turned-off changes still update your schedule. You just won't be alerted.</p>`;
   }
 
   /* ---------- drawer + chrome ---------- */
   function renderDrawer() {
-    const un = unreadCount();
     $('#drawer').innerHTML = `<div class="profile"><div class="avatar">EM</div><div><b>Eleza Mendoza</b><small>emendoza@servicefusion.com</small></div></div>
       <div class="menu">
         <button data-act="toast" data-msg="My Profile – coming soon">${ic('users', 26)}My Profile</button>
-        <button data-act="drawer-inbox">${ic('bell', 26)}Notifications${un ? `<span class="mb">${un}</span>` : ''}</button>
         <button data-act="drawer-nset">${ic('sliders', 26)}Notification Settings</button>
         <hr>
         <button data-act="toast" data-msg="Settings – see My Work prototype">${ic('gear', 26)}Settings</button>
@@ -1156,7 +1214,14 @@
     const n = Object.assign({ id: ++nid, type, day: 'Today', time: fmt(simMin), unread: true }, o);
     S.notifs.unshift(n); return n;
   }
-  let bt;
+  const PREF_OF = { deleted: 'cancelled' };   // deletions share the Cancellations switch
+  const PREF_LABEL = { assigned: 'Newly assigned appointments', unassigned: 'Unassigned appointments', cancelled: 'Cancellations or deletions', date: 'Date changes', time: 'Time changes' };
+  // One entry point for dispatcher changes: the schedule always changes, the alert only goes out if the preference is on.
+  function emit(type, j, o) {
+    const n = Object.assign({ job: j.id, kind: kindOf(j) }, o);
+    if (!S.prefs[PREF_OF[type] || type]) { renderAll(); return toast(`Schedule updated — no alert, you turned off “${PREF_LABEL[PREF_OF[type] || type]}”`); }
+    deliver(notify(type, n));
+  }
   function deliver(n) {
     // The inbox always gets the item; the push only shows if the device allows it.
     if (S.push) showBanner(n); else toast('Push is off — saved to your inbox only');
@@ -1166,11 +1231,11 @@
     const b = $('#banner'), act = n.action && n.job != null ? ACT[n.action] : null;
     b.innerHTML = `<div class="bn-main" data-act="bn-open" data-id="${n.id}">
         <div class="bn-app">${ic('tool', 21, 1.9)}</div>
-        <div class="bn-tx"><div class="bn-hd"><span>SERVICEFUSION</span><span>now</span></div><b>${n.title}</b><p>${n.body}</p></div></div>
-      <div class="bn-acts">${act ? `<button data-act="bn-do" data-id="${n.id}">${act}</button>` : ''}<button data-act="bn-open" data-id="${n.id}">${n.job != null ? 'Open job' : 'View'}</button></div>`;
-    b.classList.add('show'); clearTimeout(bt); bt = setTimeout(hideBanner, 9000);
+        <div class="bn-tx"><div class="bn-hd"><span>SERVICEFUSION</span><span>now</span></div><b>${n.title}</b><p>${n.body}</p>${diffHTML(n)}</div></div>
+      <div class="bn-acts">${act ? `<button data-act="bn-do" data-id="${n.id}">${act}</button>` : ''}<button data-act="bn-open" data-id="${n.id}">${n.job != null ? `Open ${NOUN[n.kind || 'job']}` : 'View'}</button></div>`;
+    b.classList.add('show');   // stays until the technician taps it or one of its buttons
   }
-  function hideBanner() { $('#banner').classList.remove('show'); clearTimeout(bt); }
+  function hideBanner() { $('#banner').classList.remove('show'); }
 
   // Called from setStatus, so a notification resolves no matter where the status was changed.
   function resolveNotifs(j, s) {
@@ -1192,10 +1257,9 @@
   }
   function openNotif(n) {
     n.unread = false; hideBanner();
-    const j = n.job != null ? jobs[n.job] : null;
-    if (j && j.cancelled) toast('This job was cancelled by dispatch');
-    else if (j && j.type === 'job') openJob(j.id);
-    else toast('No linked job – older notification');
+    const j = jobOf(n);
+    if (n.type === 'deleted') { if (!$('#inbox').classList.contains('open')) openInbox(); }   // nothing to open: the notification explains itself
+    else if (j) openJob(j.id); else toast('No linked job – older notification');
     renderAll();
   }
 
@@ -1236,29 +1300,69 @@
       a.leftEarly = true; a.leftAt = simMin;
       return deliver(notify('depart', { title: `Leaving ${a.name}?`, body: `You haven't marked this job Complete. Update the status before your next stop.`, job: a.id, action: 'complete' }));
     }
-    if (v === 'changed') {
-      if (!S.prefs.changed) return skip('Schedule changed');
-      const a = [...activeJobs()].reverse().find(x => !x.changed && x.status === 'Scheduled' && (!t || x.id !== t.id));
-      if (!a) return toast('Nothing left to reschedule');
-      a.changed = { start: a.start, end: a.end }; a.start += 60; a.end += 60;
-      return deliver(notify('changed', { title: 'Schedule changed', body: `${a.name} moved to ${rng(a.start, a.end)} (was ${rng(a.changed.start, a.changed.end)}).`, job: a.id }));
+    if (['assigned', 'unassigned', 'date', 'time', 'window', 'cancelled', 'deleted'].includes(v)) return jobChange(v);
+  }
+
+  /* ---------- job changes from the office ---------- */
+  const task = t => ({ t, d: false });
+  // Fresh work to hand out, so every event can be fired as many times as you like without a Reset.
+  const WORK = {
+    job: [
+      { name: 'Harriet Lindqvist', addr: '412 Elm St, Westerville, OH 43081', phone: '(614) 555-0166', email: 'harriet.lindqvist@example.com', desc: 'No-cool call. Outdoor unit hums but the condenser fan is not spinning.', tasks: ['Check capacitor and fan motor', 'Measure amp draw', 'Quote repair'] },
+      { name: 'Calvin Ostrander', addr: '88 Larkspur Way, Hilliard, OH 43026', phone: '(614) 555-0143', email: 'calvin.ostrander@example.com', desc: 'Water heater pilot keeps going out. Check the thermocouple and gas valve.', tasks: ['Inspect thermocouple', 'Test gas valve', 'Relight and verify'] },
+      { name: 'Nadia Rahimi', addr: '2301 Quail Run, Grove City, OH 43123', phone: '(614) 555-0127', email: 'nadia.rahimi@example.com', desc: 'Bathroom exhaust fan failed. Replace and check duct run.', tasks: ['Remove old fan', 'Install new fan', 'Check duct'] }],
+    estimate: [
+      { name: 'Tomas & Ruth Beaumont', addr: '77 Lakeview Dr, Powell, OH 43065', phone: '(614) 555-0152', email: 'beaumont.family@example.com' },
+      { name: 'Janelle Whitaker', addr: '640 Maplewood Ave, Worthington, OH 43085', phone: '(614) 555-0119', email: 'janelle.whitaker@example.com' },
+      { name: 'Omar & Lisa Haddad', addr: '15 Fernwood Ct, Dublin, OH 43016', phone: '(614) 555-0184', email: 'haddad.family@example.com' }],
+    visit: [
+      { name: 'Lakeside Bakery', addr: '19 Lakeside Plz, Westerville, OH 43082', phone: '(614) 555-0171', email: 'orders@lakesidebakery.example.com', desc: 'Replace the proofer door gasket (part arrived) and re-check temperature.', tasks: ['Replace door gasket', 'Check proofer temperature'] },
+      { name: 'Crestview Dental', addr: '300 Crestview Rd, Columbus, OH 43202', phone: '(614) 555-0138', email: 'office@crestviewdental.example.com', desc: 'Return to finish the condensate line and test the float switch.', tasks: ['Run condensate line', 'Test float switch'] },
+      { name: 'Parkside Market', addr: '8 Parkside Sq, Gahanna, OH 43230', phone: '(614) 555-0192', email: 'manager@parksidemarket.example.com', desc: 'Second visit: recharge the reach-in and verify box temperature.', tasks: ['Recharge system', 'Log box temperature'] }]
+  };
+  const SLOT = { job: [16 * 60 + 45, 60, 1097001254], estimate: [15 * 60, 30, 1023441907], visit: [17 * 60 + 45, 45, 1096118840] };
+  function addWork(kind) {
+    const i = S.seq[kind]++, t = WORK[kind][i % 3], [base, len, num0] = SLOT[kind], start = base + (i % 3) * (len + 15), num = String(num0 + i * 37);
+    const j = Object.assign({ id: jobs.length, type: kind === 'estimate' ? 'estimate' : 'job', as: 'Jordan Reyes', status: 'Scheduled', notes: { tech: [], job: [] }, logs: [], photos: 0, stamps: {} },
+      t, { num, start, end: start + len, tasks: (t.tasks || []).map(task) }, kind === 'visit' ? { sv: { n: 3 + (i % 3), job: num } } : {});
+    jobs.push(j); return j;
+  }
+  // Latest-in-the-day item of this kind that isn't the Next up card, so the demo doesn't disturb what you're working on.
+  const target = kind => { const t = nextUp(); return [...jobs].reverse().find(x => kindOf(x) === kind && isActive(x) && (x.type === 'estimate' || x.status === 'Scheduled') && x !== t); };
+  const remember = j => { if (!j.changed) { const w = win(j); j.changed = { start: j.start, end: j.end, ws: w.ws, we: w.we }; } };
+  function jobChange(ev) {
+    const kind = S.dk, noun = NOUN[kind], Noun = cap(noun);
+    if (ev === 'assigned') {
+      const j = addWork(kind);
+      return emit('assigned', j, { kind, title: `New ${noun} assigned`, body: `${j.name} · ${refOf(j)} · Today ${rng(j.start, j.end)}` });
     }
-    if (v === 'assigned') {
-      if (!S.prefs.assigned) return skip('Job assigned');
-      if (S.assigned) return toast('Already assigned in this demo');
-      S.assigned = true;
-      const id = jobs.length;
-      jobs.push({ id, type: 'job', name: 'Harriet Lindqvist', addr: '412 Elm St, Westerville, OH 43081', as: 'Jordan Reyes', num: '1097001254', start: 16 * 60 + 45, end: 17 * 60 + 45, status: 'Scheduled', phone: '(614) 555-0166', email: 'harriet.lindqvist@example.com',
-        desc: 'No-cool call. Outdoor unit hums but the condenser fan is not spinning.', tasks: ['Check capacitor and fan motor', 'Measure amp draw', 'Quote repair'].map(x => ({ t: x, d: false })),
-        notes: { tech: [], job: [] }, logs: [], photos: 0, stamps: {} });
-      return deliver(notify('assigned', { title: 'New job assigned to you', body: `Harriet Lindqvist · ${rng(16 * 60 + 45, 17 * 60 + 45)} · 412 Elm St, Westerville`, job: id }));
+    const j = target(kind) || addWork(kind);   // nothing left of this kind to change? quietly add one first
+    const ctx = `${j.name} · ${refOf(j)}`;
+    if (ev === 'unassigned') {
+      j.unassigned = true; if (cur === j.id) closeJob(true);
+      return emit('unassigned', j, { kind, title: `${Noun} removed from your schedule`, body: `You're no longer assigned to ${ctx}.` });
     }
-    if (v === 'cancelled') {
-      if (!S.prefs.cancelled) return skip('Job cancelled');
-      const a = [...activeJobs()].reverse().find(x => x.status === 'Scheduled' && (!t || x.id !== t.id));
-      if (!a) return toast('Nothing to cancel');
-      a.cancelled = true;
-      return deliver(notify('cancelled', { title: 'Job cancelled', body: `${a.name} (${fmt(a.start)}) was cancelled by dispatch.`, job: a.id }));
+    if (ev === 'deleted') {
+      j.deleted = true; if (cur === j.id) closeJob(true);
+      // The record is gone, so the notification carries no link and has to explain itself.
+      return emit('deleted', j, { kind, job: null, title: `${Noun} deleted`, body: `${ctx} was deleted. It was ${whenOf(j)}.` });
+    }
+    if (ev === 'cancelled') {
+      j.cancelled = true; j.status = 'Cancelled'; if (cur === j.id) closeJob(true);
+      return emit('cancelled', j, { kind, title: `${Noun} cancelled`, body: `${ctx} was cancelled.` });
+    }
+    if (ev === 'date') {
+      remember(j); const from = whenOf(j); j.date = 'Mon, Oct 12'; j.moved = true;
+      return emit('date', j, { kind, title: `${Noun} date changed`, body: ctx, diff: { label: 'Date', from, to: whenOf(j) } });
+    }
+    remember(j); const dl = j.date ? j.date : 'Today';
+    if (ev === 'time') {
+      const from = rng(j.start, j.end); j.start += 30; j.end += 30; if (j.aw) j.aw = { ws: j.aw.ws + 30, we: j.aw.we + 30 };
+      return emit('time', j, { kind, title: `${Noun} time changed`, body: `${ctx} · ${dl}`, diff: { label: 'Start – end time', from, to: rng(j.start, j.end) } });
+    }
+    if (ev === 'window') {
+      const w = win(j), from = rng(w.ws, w.we); j.aw = { ws: w.ws + 30, we: w.we + 30 };
+      return emit('time', j, { kind, title: `${Noun} arrival window changed`, body: `${ctx} · ${dl}`, diff: { label: 'Arrival window', from, to: rng(j.aw.ws, j.aw.we) } });
     }
   }
 
@@ -1273,7 +1377,6 @@
       case 'nset-back': closeNset(); break;
       case 'drawer': drawerOpen(true); break;
       case 'drawer-close': drawerOpen(false); break;
-      case 'drawer-inbox': drawerOpen(false); openInbox(); break;
       case 'drawer-nset': drawerOpen(false); openInbox(); setTimeout(openNset, 120); break;
       case 'tab': if (d.v === 'more') drawerOpen(true); else if (d.v === 'time') toast('Time – coming soon'); else setTab(d.v); break;
       case 'hopen': { const j = jobs[+id]; if (j.type === 'job') openJob(j.id); else toast('Estimate details – out of scope for this prototype'); break; }
@@ -1281,12 +1384,15 @@
       case 'hcontact': e.stopPropagation(); sheetTarget = +id; openSheet('contact'); break;
       case 'hexp': { const k = id + d.k; S.expanded[k] = !S.expanded[k]; renderHome(); break; }
       case 'filter': S.unreadOnly = d.v === 'unread'; renderInbox(); break;
+      case 'nread': S.notifs.find(n => n.id == id).unread = false; renderInbox(); renderDrawer(); break;   // mark read without opening the job
       case 'markall': S.notifs.forEach(n => n.unread = false); renderInbox(); renderDrawer(); break;
       case 'notif': openNotif(S.notifs.find(n => n.id == id)); break;
       case 'nact': { e.stopPropagation(); const n = S.notifs.find(n => n.id == id); n.unread = false; doAction(n.job, n.action); break; }
       case 'clock': S.clockedIn = !S.clockedIn; if (S.clockedIn) S.clockInAt = simMin; toast(S.clockedIn ? `Clocked in at ${fmt(simMin)}` : 'Clocked out'); renderHome(); break;
       case 'perm-fix': S.push = true; S.loc = 'always'; toast('Opened iOS Settings — permissions granted (simulated)'); renderAll(); break;
-      case 'pref': S.prefs[d.k] = !S.prefs[d.k]; renderNset(); break;
+      case 'pref': S.prefs[d.k] = !S.prefs[d.k]; savePrefs(); renderNset(); break;
+      case 'notemore': notesOpen[d.k] = !notesOpen[d.k]; renderPanel(panelKind); break;
+      case 'devdk': S.dk = d.v; renderPanel(panelKind); break;
       case 'bn-open': { const n = S.notifs.find(n => n.id == id); openNotif(n); break; }
       case 'bn-do': { e.stopPropagation(); const n = S.notifs.find(n => n.id == id); n.unread = false; doAction(n.job, n.action); break; }
       case 'trig': trig(d.v); break;
@@ -1316,26 +1422,36 @@
     'If a job has no separate contact, the customer is the contact.'
   ], 'Customers asked for call and text from the job without hunting for the number. Contact data comes from the job\'s primary contact.'];
   P.inbox = ['Notification inbox', [
-    'Bell in the Home and My Work headers (no unread-count badge; the bell rings when a notification arrives). It opens the inbox, newest first, grouped by day.',
-    'Unread rows are tinted with a dot and bold title. Tapping a row marks it read and opens the real Job Details for that job.',
+    'Bell in the Home and My Work headers with a red unread count; it rings when a notification arrives. It opens the inbox, newest first, grouped by day.',
+    'Unread rows are tinted with a dot and bold title. Tapping a row marks it read and opens the real Job Details for that job, estimate or site visit.',
+    '<b>Job changes from the office</b> use the same rows. Each event has its own icon colour: assigned (green), removed (orange), date or time changed (blue), cancelled (red). The title says what happened to which kind of work, and the second line is always customer and job, estimate or visit number.',
+    '<b>Date and time changes show Was → Now in the row</b> (and in the push), so the tech never has to open the appointment to see the difference. Arrival window changes are labelled separately from start and end time.',
+    '<b>Deleted work</b> has no link to follow. Tapping the row just marks it read, and the push opens the inbox. The text carries everything the tech needs: what was deleted, the customer, the number and when it was.',
+    '<b>Removed and cancelled work</b> opens the same Job Details as any other notification for now. Access rules for work the technician no longer has are decided when the epic is built.',
     'Rows with a pending action show it inline. Once the status changes, from the push, the row, the Home card or Job Details, the row shows “Marked On Site at 9:44 AM”.',
+    'Tap the blue dot on an unread row to mark just that one read, without opening the job.',
     'Footer states the 7-day auto-clear. “Mark all read” and an All / Unread filter are the only controls.',
     'The sliders icon opens per-trigger settings.'
   ], 'Epic scope: bell icon in the header, reverse-chronological list, read/unread, deep link with quick actions, cleared after 7 days.'];
   P.nset = ['Notification settings', [
     'Device status first: push and location. Anything short of “Always” location is shown in red, since geofence triggers need it.',
     'Per-tech opt-in per trigger type. Timing and radius are set by the company admin, so they\'re shown as text, not controls.',
-    'The dispatcher events (job assigned, schedule changed, cancelled) are included and marked v2.'
+    '<b>Changes to your work</b> adds five switches to the same list: newly assigned appointments, unassigned appointments, cancellations or deletions, date changes, and time changes (start/end time and arrival time). All start on and are remembered between visits; Reset restores them.',
+    'Turning one off only stops the alert. The schedule still updates, so the job still appears, moves or disappears.'
   ], 'Epic: per-tech opt-in/out per trigger; geofence radius (default 500 ft) and lead times set by admin.'];
 
   const panelBase = () => $('#nset').classList.contains('open') ? 'nset' : $('#inbox').classList.contains('open') ? 'inbox' : tab;
   let panelKind = 'home';
+  const notesOpen = {};   // which notes panels are expanded
+  const epicRef = (key = 'SF-43536', name = 'Push Notifications') => `<div class="epicref">Epic: <a href="https://everpro-tech.atlassian.net/browse/${key}" target="_blank" rel="noopener">${key}</a> · ${name}</div>`;
+  const PANEL_EPIC = { inbox: [], nset: [], home: ['SF-43553', 'Home'] };   // [] = Push Notifications (default)
   function notifControls() {
     const sw = (act, v, on, l) => `<button class="${on ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`;
-    return `<h4 style="margin-top:18px">Notification triggers · v1</h4>
+    return `<h4 style="margin-top:18px">Reminders</h4>${epicRef('SF-40790', 'Reminders')}
       <div class="tgrid"><button data-act="trig" data-v="morning">Morning reminder</button><button data-act="trig" data-v="arrive">Arrive at site</button><button data-act="trig" data-v="warn">Window closing</button><button data-act="trig" data-v="depart">Leave w/o Complete</button></div>
-      <h4 style="margin-top:12px">Dispatcher events · v2</h4>
-      <div class="tgrid"><button data-act="trig" data-v="changed">Schedule changed</button><button data-act="trig" data-v="assigned">Job assigned</button><button data-act="trig" data-v="cancelled">Job cancelled</button></div>
+      <h4 style="margin-top:12px">Changes from the office</h4>${epicRef()}
+      <div class="lab">Applies to</div><div class="mini">${['job', 'estimate', 'visit'].map(k => sw('devdk', k, S.dk === k, { job: 'Job', estimate: 'Estimate', visit: 'Site visit' }[k])).join('')}</div>
+      <div class="tgrid"><button data-act="trig" data-v="assigned">Assigned</button><button data-act="trig" data-v="unassigned">Removed</button><button data-act="trig" data-v="date">Date changed</button><button data-act="trig" data-v="time">Start / end time</button><button data-act="trig" data-v="window">Arrival window</button><button data-act="trig" data-v="cancelled">Cancelled</button><button data-act="trig" data-v="deleted">Deleted</button></div>
       <h4 style="margin-top:12px">Device</h4>
       <div class="lab">Push notifications</div><div class="mini">${sw('devpush', '1', S.push, 'Allowed')}${sw('devpush', '0', !S.push, 'Off')}</div>
       <div class="lab">Location access</div><div class="mini">${sw('devloc', 'always', S.loc === 'always', 'Always')}${sw('devloc', 'while', S.loc === 'while', 'While Using')}${sw('devloc', 'never', S.loc === 'never', 'Never')}</div>`;
@@ -1343,12 +1459,15 @@
   function renderPanel(k) {
     panelKind = k;
     const [t, pts, ev] = P[k], pn = $('#panel'), top = pn.scrollTop;
-    pn.innerHTML = `<h4>Prototype · Happy path + PO &amp; Completion</h4><h3>${t}</h3><ul>${pts.map(p => `<li>${p}</li>`).join('')}</ul><h4>Evidence</h4><p class="ev" style="margin:0 0 16px">${ev}</p>
-      <div class="ctl"><button data-act="reset">↺ Reset</button><button data-act="theme">◐ Light / Dark</button></div>
+    pn.innerHTML = `<div class="resetbar"><button data-act="reset">↺ Reset</button></div><h4>Prototype</h4><h3>${t}</h3>${PANEL_EPIC[k] ? epicRef(...PANEL_EPIC[k]) : ''}<div class="nbody ${notesOpen[k] ? '' : 'clamp'}"><ul>${pts.map(p => `<li>${p}</li>`).join('')}</ul></div><button class="nmore" data-act="notemore" data-k="${k}">${notesOpen[k] ? 'Less' : 'More'}</button>
+      <div class="ctl"><button data-act="theme">◐ Light / Dark</button></div>
       <div class="ctl"><button data-act="font">Aa Font: ${{ inter:'Inter', jakarta:'Plus Jakarta Sans', system:'iOS System (SF)' }[root.dataset.font]}</button></div>
-      <h4 style="margin-top:18px">PO &amp; Completion demo</h4>${demoHTML()}
+      <h4 style="margin-top:18px">PO &amp; Completion demo</h4>${epicRef('SF-43631', 'PO &amp; Completion')}${demoHTML()}
       ${notifControls()}
-      <p class="ev" style="margin-top:14px"><b>Try it:</b> from Home, fire “Arrive at site” and tap Mark On Site on the push. Then walk the job to Complete. Fire “Leave w/o Complete” to see the card turn red with a Mark Complete button.</p>`;
+      <p class="ev" style="margin-top:14px"><b>Try it:</b> from Home, pick Job, Estimate or Site visit under “Changes from the office” and fire an event. Tap the push to open it, or ignore it and find it under the bell. Fire Removed or Cancelled, then tap the inbox row. Turn a type off in Notification Settings and fire it again to see the schedule update without an alert.</p>`;
+    // A short preview with More / Less. Only keep the toggle if the notes really overflow the preview.
+    const nb = pn.querySelector('.nbody.clamp'), nm = pn.querySelector('.nmore');
+    if (nb && nm && nb.clientHeight && nb.scrollHeight <= nb.clientHeight + 1) nm.remove();
     pn.scrollTop = top;
   }
 
@@ -1466,7 +1585,7 @@
       </div></div>`;
   }
   function barHTML(j) {
-    if (j.status === 'Scheduled') return '';
+    if (j.status === 'Scheduled' || j.cancelled || j.unassigned) return '';
     if (j.status === 'Waiting on Parts') {
       const s = stg(pt(j));
       return `<div class="actionbar"><div class="finished" style="text-align:left">Waiting for parts<br><small style="color:var(--text3)">${s.label} · Next: ${s.owner}</small></div><button class="pbtn" style="flex:none;padding:0 22px" data-act="parts">View PO</button></div>`;
@@ -1786,7 +1905,7 @@
   root.dataset.theme = localStorage.getItem('sf-theme') || 'dark';
   root.dataset.font = localStorage.getItem('sf-font') || 'inter';
   renderChrome();
-  reset();
+  reset(); loadPrefs(); renderNset();
 })();
 </script>
 </body>
