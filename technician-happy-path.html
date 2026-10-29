@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="gate.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ServiceFusion iOS – Technician Happy Path (v1) + Home &amp; Notifications</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1176,7 +1177,7 @@
         <button data-act="drawer-nset">${ic('sliders', 26)}Notification Settings</button>
         <hr>
         <button data-act="toast" data-msg="Settings – see My Work prototype">${ic('gear', 26)}Settings</button>
-        <button class="danger" data-act="toast" data-msg="Logout – not available in prototype">${ic('exit', 26)}Logout</button>
+        <button class="danger" data-act="logout">${ic('exit', 26)}Logout</button>
       </div>`;
   }
   function renderChrome() {
@@ -1391,6 +1392,7 @@
       case 'clock': S.clockedIn = !S.clockedIn; if (S.clockedIn) S.clockInAt = simMin; toast(S.clockedIn ? `Clocked in at ${fmt(simMin)}` : 'Clocked out'); renderHome(); break;
       case 'perm-fix': S.push = true; S.loc = 'always'; toast('Opened iOS Settings — permissions granted (simulated)'); renderAll(); break;
       case 'pref': S.prefs[d.k] = !S.prefs[d.k]; savePrefs(); renderNset(); break;
+      case 'logout': if (window.SFGate) SFGate.signOut(); location.href = 'signin.html'; break;
       case 'notemore': notesOpen[d.k] = !notesOpen[d.k]; renderPanel(panelKind); break;
       case 'devdk': S.dk = d.v; renderPanel(panelKind); break;
       case 'bn-open': { const n = S.notifs.find(n => n.id == id); openNotif(n); break; }
