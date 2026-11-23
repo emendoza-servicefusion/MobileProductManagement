@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="../gate.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SF Competitor Snapshot - Fall 2026</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <h1>SF Competitor Snapshot - Fall 2026</h1>
+      <a class="nav-link" href="../technician-happy-path.html">Mobile prototype</a>
+    </div>
+  </header>
+
+  <p class="header-note"><strong>About this snapshot:</strong> A competitive analysis of core functionality, plus the most recent pricing and positioning. It isn't a comprehensive strategic analysis. It's a reference for comparing how competitors present the key views of the platform with our happy-path design.</p>
+
+  <main>
+    <section class="snapshot" aria-labelledby="snapshot-title">
+      <h2 id="snapshot-title" class="section-title">Market snapshot - Top 5 Competitors in Sales Cycles</h2>
+      <div id="snapshot" class="snapshot-grid"></div>
+    </section>
+
+    <div class="section-heading">
+      <h2 class="section-title">Key screens</h2>
+      <p class="section-note">Captured from inside the products and product demo videos.</p>
+    </div>
+    <div class="table-wrap" aria-label="Competitor screen comparison">
+      <div id="gallery" class="gallery"></div>
+    </div>
+  </main>
+
+  <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
+    <button class="close-button" type="button" aria-label="Close overlay">×</button>
+    <div class="viewer-heading">
+      <p id="viewer-competitor" class="eyebrow"></p>
+      <h2 id="viewer-title"></h2>
+      <p id="viewer-count" class="viewer-count"></p>
+    </div>
+    <div id="viewer-content" class="viewer-content"></div>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

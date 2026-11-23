@@ -38,14 +38,17 @@
     },
     signIn: function () { try { sessionStorage.setItem(KEY, JSON.stringify({ h: HASH, exp: Date.now() + DAYS * 864e5 })); } catch (e) {} },
     signOut: function () { try { sessionStorage.removeItem(KEY); } catch (e) {} },
-    // Only same-folder .html pages, so ?next= can't send someone elsewhere.
-    next: function () { var n = new URLSearchParams(location.search).get('next') || ''; return /^[\w.-]+\.html([?#].*)?$/.test(n) ? n : 'technician-happy-path.html'; }
+    // Only .html pages inside this site (letters, digits, - _ . and / only, no "..") so ?next= can't send someone elsewhere.
+    next: function () { var n = new URLSearchParams(location.search).get('next') || ''; return /^([\w-]+\/)*[\w.-]+\.html([?#].*)?$/.test(n) ? n : 'technician-happy-path.html'; }
   };
   window.SFGate = Gate;
 
+  // gate.js lives at the site root, so work out the root from this script's own URL. That lets pages in subfolders (competitors/) use it too.
+  var root = new URL('.', document.currentScript.src).pathname;
   if (!/signin\.html$/.test(location.pathname) && !Gate.ok()) {
     document.documentElement.style.visibility = 'hidden';
-    var here = location.pathname.split('/').pop() || 'technician-happy-path.html';
-    location.replace('signin.html?next=' + encodeURIComponent(here + location.search + location.hash));
+    var here = location.pathname.indexOf(root) === 0 ? location.pathname.slice(root.length) : '';
+    if (!here || /\/$/.test(here)) here += (here ? 'index.html' : 'technician-happy-path.html');
+    location.replace(root + 'signin.html?next=' + encodeURIComponent(here + location.search + location.hash));
   }
 })();

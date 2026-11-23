@@ -377,12 +377,65 @@
   #panel .nbody.clamp { max-height:100px; overflow:hidden; -webkit-mask-image:linear-gradient(#000 62%, transparent); mask-image:linear-gradient(#000 62%, transparent); }
   #panel .nbody ul { margin-bottom:6px; }
   #panel .nmore { color:var(--accent); font-size:13px; font-weight:600; margin:0 0 14px; padding:2px 0; }
+  /* roadmap strip: top navigation, separate from the notes panel */
+  body { padding-top:52px; }
+  #roadmap { position:fixed; top:0; left:0; right:0; height:52px; z-index:400; display:flex; align-items:center; gap:8px; padding:0 130px 0 20px; background:var(--panel); box-shadow:0 1px 0 var(--sep); overflow-x:auto; }
+  #roadmap .rl { flex:none; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text2); margin-right:4px; }
+  #roadmap button { flex:none; display:flex; align-items:center; gap:8px; background:var(--seg-bg); color:var(--text); border-radius:16px; padding:7px 14px; font-weight:600; font-size:13px; }
+  #roadmap button:hover { filter:brightness(1.12); }
+  #roadmap button.on { background:var(--accent); color:#fff; }
+  /* presentation backdrop: the selected roadmap item sets --h and tints the page. The phone screens are untouched. */
+  @property --h { syntax:'<number>'; inherits:true; initial-value:215; }
+  :root { --l1:80%; --l2:84%; --glow:.35; }
+  [data-theme="dark"] { --l1:24%; --l2:18%; --glow:.5; }
+  /* page backdrop and nav strip stay light whatever the app theme is; the Light / Dark button only drives the app */
+  body { --page:#d9dbe0; --l1:80%; --l2:84%; --glow:.35; }
+  #roadmap, #panelToggle { --panel:#fff; --text:#000; --text2:#6c6c70; --seg-bg:rgba(118,118,128,.12); --sep:rgba(60,60,67,.18); }
+  body { --h:215; transition:background .25s, --h .7s ease;
+    background:
+      radial-gradient(ellipse 70% 60% at 18% 12%, hsl(var(--h) 75% var(--l1) / .75), transparent 70%),
+      radial-gradient(ellipse 65% 60% at 88% 90%, hsl(calc(var(--h) + 45) 70% var(--l2) / .7), transparent 70%),
+      var(--page); }
+  .phone { box-shadow:0 0 0 11px #111,0 0 0 12px #3a3a3c,0 30px 90px hsl(var(--h) 80% 45% / var(--glow)); }
+  #roadmap { background:color-mix(in srgb, var(--panel) 86%, hsl(var(--h) 80% 55%)); }
+  /* brand: the logo sits in a white tile (the logo PNG has a white background) with room around it */
+  body { padding-top:68px; }
+  /* two rows: logo + items, then a short blurb for the selected item. The strip's height is measured in JS (sizeNav). */
+  #roadmap { height:auto; flex-direction:column; align-items:stretch; gap:0; padding:0; overflow:visible; }
+  #roadmap .rrow { display:flex; align-items:center; gap:10px; height:68px; padding:0 270px 0 16px; overflow-x:auto; }
+  #roadmap .rblurb { margin:0; padding:0 270px 14px 16px; max-width:1100px; min-height:calc(3 * 1.45em + 14px); font-size:13.5px; line-height:1.45; color:var(--text2); }
+  #roadmap .rblurb .rtag { display:inline-block; margin-right:8px; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#6a4a00; background:#fff1cf; border:1px solid #f0d58a; border-radius:999px; padding:2px 9px; vertical-align:1px; }
+  #roadmap .logo { flex:none; display:flex; align-items:center; justify-content:center; height:48px; padding:0 16px; margin-right:22px; background:#fff; border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  #roadmap .logo img { height:36px; width:auto; display:block; }
+  /* TEMPORARILY HIDDEN: roadmap links, "Roadmap" label and blurb. The logo stays. Everything is still rendered, so to bring them back delete the next rule. */
+  #roadmap .rl, #roadmap .rrow button, #roadmap .rblurb { display:none; }
+  #panelToggle { top:19px; }   /* re-centred on the taller strip */
+  /* operational roadmap items: an explainer card in place of the phone (fixed light colours, like the rest of the page chrome) */
+  #opsCard { display:none; width:660px; max-width:calc(100vw - 48px); max-height:calc(100vh - 210px); overflow:auto; background:#fff; color:#1c1c1e; border-radius:26px; padding:38px 42px 30px; box-shadow:0 0 0 1px rgba(60,60,67,.14), 0 24px 60px rgba(0,0,0,.14); font-family:var(--font); }
+  body.ops-mode #opsCard { display:block; }
+  body.ops-mode #stage, body.ops-mode #panel, body.ops-mode #panelToggle { display:none; }
+  #opsCard .opsbadge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6a4a00; background:#fff1cf; border:1px solid #f0d58a; border-radius:999px; padding:5px 12px; }
+  #opsCard h2 { margin:14px 0 8px; font-size:30px; letter-spacing:-.022em; }
+  #opsCard .opslede { margin:0 0 18px; font-size:16px; line-height:1.5; color:#3a3a3c; }
+  #opsCard .opsnote { background:#f2f2f7; border-radius:14px; padding:14px 16px; font-size:14px; line-height:1.5; color:#3a3a3c; }
+  #opsCard .opsnote b { color:#1c1c1e; }
+  #opsCard h3 { margin:24px 0 10px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6c6c70; }
+  #opsCard .opsgrid { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:14px 28px; }
+  #opsCard .opsgrid li { font-size:13.5px; line-height:1.45; color:#48484a; }
+  #opsCard .opsgrid li b { display:block; font-size:14.5px; color:#1c1c1e; margin-bottom:2px; }  #panel { border-top:4px solid hsl(var(--h) 70% 55%); }
+  #panel h3 { color:hsl(var(--h) 65% 48%); }
+  [data-theme="dark"] #panel h3 { color:hsl(var(--h) 80% 70%); }
   #panel .epicref { margin:-6px 0 12px; font-size:12px; color:var(--text2); }
   #panel .epicref a { color:var(--accent); font-weight:600; text-decoration:none; }
   #panel .epicref a:hover { text-decoration:underline; }
-  #panelToggle { position:fixed; top:12px; right:12px; z-index:500; background:var(--panel); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:16px; opacity:.55; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  #panelToggle { position:fixed; top:11px; right:12px; z-index:500; background:var(--panel); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:16px; opacity:.55; box-shadow:0 2px 8px rgba(0,0,0,.15); }
   #panelToggle:hover { opacity:1; }
   @media (max-width:820px) { #panelToggle { display:none; } }
+  /* link to the competitive analysis, sits just left of the notes toggle */
+  #compLink { position:fixed; top:19px; right:112px; z-index:500; background:var(--panel); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:16px; opacity:.55; box-shadow:0 2px 8px rgba(0,0,0,.15); text-decoration:none; white-space:nowrap; }
+  #compLink:hover { opacity:1; }
+  body.ops-mode #compLink { right:12px; }
+  @media (max-width:820px) { #compLink { right:12px; } }
 
   /* ---------- PO & Completion ---------- */
   #po { transform:translateX(100%); z-index:45; box-shadow:-8px 0 24px rgba(0,0,0,.15); }
@@ -483,6 +536,21 @@
 </style>
 </head>
 <body>
+<nav id="roadmap" aria-label="Roadmap"></nav>
+<!-- Operational roadmap items have no app screen. This card replaces the phone so nobody reads them as an app change. Wording from the Productboard feature. -->
+<section id="opsCard" aria-label="Over-the-Air (OTA) Updates">
+  <span class="opsbadge">Operational improvement</span>
+  <h2>Over-the-Air (OTA) Updates</h2>
+  <p class="opslede">A technical capability, not a new feature. It lets us deliver eligible mobile app fixes and improvements without a new App Store or Google Play release.</p>
+  <div class="opsnote"><b>Nothing changes on the technician&rsquo;s screen.</b> No new features or product functionality. The value is how quickly, and how consistently, fixes reach the app.</div>
+  <h3>Why it matters</h3>
+  <ul class="opsgrid">
+    <li><b>Resolve issues faster</b>Deliver eligible fixes without waiting for a full app store release cycle.</li>
+    <li><b>Reduce update friction</b>Decrease reliance on technicians manually installing new app versions.</li>
+    <li><b>Improve reliability</b>Respond more quickly when mobile issues affect technicians in the field.</li>
+    <li><b>Keep teams current</b>Reduce version fragmentation across technician devices.</li>
+    <li><b>Support faster delivery</b>Create a more efficient way to release certain mobile improvements.</li>
+  </ul></section>
 <div id="stage">
 <div class="phone" id="phone">
   <div class="island"></div>
@@ -567,6 +635,7 @@
 
 <aside id="panel"></aside>
 <button id="panelToggle" data-act="togglePanel" aria-label="Show or hide prototype notes and controls">Hide notes</button>
+<a id="compLink" href="competitors/index.html">Competitive analysis</a>
 
 <script>
 (() => {
@@ -574,7 +643,7 @@
   const root = document.documentElement;
 
   /* ---------- scale ---------- */
-  const fit = () => { $('#stage').style.transform = `scale(${Math.min(1,(innerHeight-40)/852)})`; };
+  const fit = () => { $('#stage').style.transform = `scale(${Math.min(1,(innerHeight-(($('#roadmap') || {}).offsetHeight || 68)-44)/852)})`; };
   addEventListener('resize', fit); fit();
 
   /* ---------- icons ---------- */
@@ -907,7 +976,8 @@
     }
     else if (a === 'desc') { const d = $('#desc'); d.classList.toggle('open'); $('#descToggle').textContent = d.classList.contains('open') ? 'Less' : 'More'; }
     else if (a === 'togglePanel') { const h = document.body.classList.toggle('hide-panel'); el.textContent = h ? 'Show notes' : 'Hide notes'; }
-    else if (a === 'reset') reset();
+    else if (a === 'road') roadGo(el.dataset.v);
+    else if (a === 'reset') { roadActive = null; document.body.classList.remove('ops-mode'); renderRoad(); reset(); }
     else if (a === 'font') { const order = ['inter', 'jakarta', 'system']; root.dataset.font = order[(order.indexOf(root.dataset.font) + 1) % 3]; localStorage.setItem('sf-font', root.dataset.font); renderPanel(sheetKind || (cur !== null ? 'job' : 'work')); }
     else if (a === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('sf-theme', root.dataset.theme); }
   });
@@ -1458,6 +1528,35 @@
       <div class="lab">Push notifications</div><div class="mini">${sw('devpush', '1', S.push, 'Allowed')}${sw('devpush', '0', !S.push, 'Off')}</div>
       <div class="lab">Location access</div><div class="mini">${sw('devloc', 'always', S.loc === 'always', 'Always')}${sw('devloc', 'while', S.loc === 'while', 'While Using')}${sw('devloc', 'never', S.loc === 'never', 'Never')}</div>`;
   }
+  /* ---------- Roadmap strip: each item resets the demo and jumps to the screen it delivers ---------- */
+  // In Productboard Timeframe order (Service Fusion features). Items with no screen yet just reset to Home.
+  const ROADMAP = [
+    { id: 'notif', label: 'Timely notifications', go: () => openInbox() },
+    { id: 'happy', label: 'Happy path optimization', go: () => {} },
+    { id: 'ota', label: 'Over the air updates', ops: true, go: () => {} },   // operational, not an app change: shows the explainer card
+    { id: 'agree', label: 'Create service agreements', go: () => {} },
+    { id: 'po', label: 'Create purchase orders', go: () => { openJob(1); poDraft = newDraft(); poFrom = null; openPO('form'); } },
+    { id: 'forms', label: 'Fillable forms', go: () => {} }
+  ];
+  let roadActive = null;
+  // Short value blurbs for the audience, drawn from the Productboard descriptions. Shown under the items for the selected one.
+  const BLURB = {
+    notif: `Technicians miss job changes while they're in the field, and dispatchers end up calling and texting to make sure they're seen. Timely notifications push the important things to the technician at the right moment: upcoming tasks, reminders, and changes to their work. Technicians stay on schedule and the office spends less time chasing.`,
+    happy: `Technicians use a small set of screens all day: My Work, Job Details and status changes. This work makes those screens clearer, puts the most-used actions front and centre, and cuts the steps for routine tasks, without making anyone relearn the app. Too many steps is the top reason customers give when they cite the field app as a reason for leaving.`,
+    ota: `A technical capability that lets us ship eligible fixes and improvements to the mobile app without waiting for a new App Store or Google Play release. Technicians see no new features. What they get is faster fixes and fewer people stuck on old versions.`,
+    agree: `Technicians are already with the customer, which is the best moment to talk about ongoing service. This lets them create a new service agreement from the mobile app, and see renewal dates to start renewal conversations, without handing the job to the office. More customers can be enrolled at the right moment.`,
+    po: `When a job needs a part the technician doesn't have, the job stalls and the office is often left guessing what happens next. This lets authorised technicians request and create purchase orders from the job, see when parts arrive, and record parts used, so the invoice is accurate when the work is done. Feedback on parts and purchasing access came from 65 distinct accounts.`,
+    forms: `Technicians complete digital forms on the job (inspections, checklists, service records) that managers define, replacing paper and PDFs. The documentation stays attached to the job, so the office can be confident it's been done consistently and can find it later.`
+  };
+  const sizeNav = () => { document.body.style.paddingTop = $('#roadmap').offsetHeight + 'px'; fit(); };
+  addEventListener('resize', sizeNav);
+  const renderRoad = () => {
+    const act = ROADMAP.find(r => r.id === roadActive);
+    const blurb = act ? `${act.ops ? '<span class="rtag">Operational improvement</span>' : ''}${BLURB[act.id]}` : 'Select a roadmap item above to see what it delivers.';
+    $('#roadmap').innerHTML = `<div class="rrow"><span class="logo"><img src="assets/sf-logo.png" alt="Service Fusion"></span><span class="rl">Roadmap</span>${ROADMAP.map(r => `<button class="${r.id === roadActive ? 'on' : ''}" data-act="road" data-v="${r.id}">${r.label}</button>`).join('')}</div><p class="rblurb">${blurb}</p>`;
+    sizeNav();
+  };
+  function roadGo(id) { const r = ROADMAP.find(x => x.id === id); if (!r) return; reset(); document.body.classList.toggle('ops-mode', !!r.ops); r.go(); roadActive = id; renderRoad(); }
   function renderPanel(k) {
     panelKind = k;
     const [t, pts, ev] = P[k], pn = $('#panel'), top = pn.scrollTop;
@@ -1907,7 +2006,7 @@
   root.dataset.theme = localStorage.getItem('sf-theme') || 'dark';
   root.dataset.font = localStorage.getItem('sf-font') || 'inter';
   renderChrome();
-  reset(); loadPrefs(); renderNset();
+  reset(); loadPrefs(); renderNset(); renderRoad();
 })();
 </script>
 </body>
